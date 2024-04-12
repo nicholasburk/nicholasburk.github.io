@@ -1,17 +1,21 @@
 project:
   type: website
+  output-dir: docs
 
 website:
-  title: "nicholasburk.github.io"
+  title: "Nicholas Burk"
   navbar:
-    left:
+    right:
       - href: index.qmd
         text: Home
+      - projects.qmd
       - about.qmd
 
 format:
   html:
-    theme: cosmo
+    theme: 
+      - darkly
+      - custom.scss
     css: styles.css
     toc: true
 

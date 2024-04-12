@@ -1,9 +1,62 @@
 ---
-title: "About"
+title: "About Me"
 ---
 
-About this site
+My background is in math and economics, and I have spent most of my career working in the financial industry doing analytical work ranging from exploratory data analysis to building and testing statistical models.
 
-```{r}
-1 + 1
-```
+
+## Education
+
+Georgia Institute of Technology | M.S. in Analytics
+
+University of California, San Diego | B.S. in Mathematics, B.S. in Economics
+
+
+## Employment
+
+**Federal Reserve Bank of San Francisco**
+
+**Reserves Data Specialist** | 2019-2023
+
+- Assisted in the implementation of monetary policy; operational areas include reserve requirements, interest payments, deficiency charges, TDF operations, etc. Required in-depth knowledge of the functionality of and data flows between a network of internal applications.
+- Researched questions from stakeholders to help guide policy decisions. Examples include exploratory analysis of usage of FRB products which guides updates to Regulation D and service offerings, extract data from external sources such as Census and FEMA and combine with internal data for mapping and spatial modeling (tests for spatial dependence, KNN, spatial regression, etc.).
+- Product owner for Reserves business line applications; wrote requirements and user stories and worked with developers to build new functionality, proposed algorithm designs, tested that production implementation matches expectations.
+- Research and development applying statistical and machine learning techniques to ad-hoc problems. Examples include applying spectral analysis to identify cyclical patterns in account activity, LDA text analysis to determine how well business-proposed classifications align with data-driven classifications, simulation to bootstrap confidence intervals and prediction intervals in a variety of cases as well as simulating infrequent business problems to test how well detection algorithms perform, end-to-end model development (logistic regression with and without regularization penalties, random forest, etc.).
+
+**MUFG Union Bank**
+
+**Model Risk Management Quantitative Analyst** | 2017-2019
+
+- As the lead validator on my team, I managed one direct report, participated in the hiring, onboarding, and training for all new employees on the team, and served as project manager for validation projects contracted out to external vendors.
+- Tested new or updated models to ensure the development process follows appropriate methodology. All testing performed independently; model owner hands over development code and documentation and I use R, Python, to run tests of model assumptions, validate performance, build challenger models, deliver resulting observations.
+- Responsible for a wide variety of credit risk models, including rating models, CCAR/DFAST stress testing models, CECL use cases, and more.
+- Challenged current models by building alternative models to showcase different methodology and ensure state of the art techniques are considered. For example, building a random forest or neural network model to compare with a logistic regression.
+- Monitored performance of existing models on an ongoing basis to identify and mitigate risks around deteriorating model performance. Involved enforcing existing model governance as well as changing governance plans to ensure they are appropriate for the model.
+
+**Federal Reserve Bank of San Francisco**
+
+**Financial Institutions Analyst** | 2014-2017
+
+- Collected and processed data from multiple sources at multiple frequencies, ensuring both timeliness and accuracy of the data. Built models for changepoint detection and structural breaks to make the quality assurance process more dynamic and data-driven.
+- Developed tools using R, SQL, and MS Office to automate time-intensive processes and aid other analysts in their work. Worked with developers to implement my tools into production for the entire FRS.
+- Built models for risk identification and exploratory analysis, leveraging external data sources as required to improve performance or yield interesting insights.
+
+**Board of Governors of the Federal Reserve System**
+
+**Research Assistant** | 2011-2014
+
+- Produced memoranda and briefings to the Board, used in the implementation of monetary policy and in data books and testimony for Board members.
+- Maintained and improved systems that collect real-time economic data.
+- Assisted Board economists in a variety of projects, most notably the nowcasting project.
+
+
+## Volunteering
+
+**American Red Cross**
+
+**Virtual Volunteer**
+
+- Consulted on causal analysis studies for the IFRC anticipatory action programs. Covered topics including study design, exploratory analysis, and communicating quantitative findings with non-technical stakeholders.
+- Developed proof-of-concept for consistently estimating demand for shelter in relation to fires in California.
+
+

@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="An exploration of using R to produce artwork, from static images to animations">
+
+<title>Nicholas Burk - Generative Art</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Nicholas Burk</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html" rel="" target="">
+ <span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../projects.html" rel="" target="">
+ <span class="menu-text">Projects</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About Me</span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introoverview" id="toc-introoverview" class="nav-link active" data-scroll-target="#introoverview">Intro/Overview</a></li>
+  <li><a href="#setting-up" id="toc-setting-up" class="nav-link" data-scroll-target="#setting-up">Setting Up</a>
+  <ul class="collapse">
+  <li><a href="#loading-libraries" id="toc-loading-libraries" class="nav-link" data-scroll-target="#loading-libraries">Loading Libraries</a></li>
+  </ul></li>
+  <li><a href="#inspiration-from-the-artsy-package" id="toc-inspiration-from-the-artsy-package" class="nav-link" data-scroll-target="#inspiration-from-the-artsy-package">Inspiration from the aRtsy package</a></li>
+  <li><a href="#initial-concept" id="toc-initial-concept" class="nav-link" data-scroll-target="#initial-concept">Initial Concept</a></li>
+  <li><a href="#designing-the-algorithm" id="toc-designing-the-algorithm" class="nav-link" data-scroll-target="#designing-the-algorithm">Designing the Algorithm</a>
+  <ul class="collapse">
+  <li><a href="#the-polygon" id="toc-the-polygon" class="nav-link" data-scroll-target="#the-polygon">The Polygon</a></li>
+  <li><a href="#the-points" id="toc-the-points" class="nav-link" data-scroll-target="#the-points">The Points</a></li>
+  <li><a href="#calculating-intersections" id="toc-calculating-intersections" class="nav-link" data-scroll-target="#calculating-intersections">Calculating Intersections</a></li>
+  <li><a href="#calculating-movement" id="toc-calculating-movement" class="nav-link" data-scroll-target="#calculating-movement">Calculating Movement</a></li>
+  <li><a href="#cleanup" id="toc-cleanup" class="nav-link" data-scroll-target="#cleanup">Cleanup</a></li>
+  </ul></li>
+  <li><a href="#first-animation" id="toc-first-animation" class="nav-link" data-scroll-target="#first-animation">First Animation</a>
+  <ul class="collapse">
+  <li><a href="#a-smooth-loop" id="toc-a-smooth-loop" class="nav-link" data-scroll-target="#a-smooth-loop">A Smooth Loop</a></li>
+  </ul></li>
+  <li><a href="#final-function" id="toc-final-function" class="nav-link" data-scroll-target="#final-function">Final Function</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Generative Art</h1>
+</div>
+
+<div>
+  <div class="description">
+    An exploration of using R to produce artwork, from static images to animations
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="introoverview" class="level2">
+<h2 class="anchored" data-anchor-id="introoverview">Intro/Overview</h2>
+<p>I came across a few blog posts about using R to generate art which piqued my interest. For readers unfamiliar with the idea, the <a href="https://cran.r-project.org/web/packages/aRtsy/readme/README.html">aRtsy</a> package is a great reference. It implements a large suite of different algorithms which are used to draw interesting patterns. I was inspired by the idea of using R for art instead of analysis and wanted to try it out myself.</p>
+<p>While I love the content in the aRtsy package, one limitation (at least at the time I’m writing this) is that the package only produces static images. My idea for a new contribution in this space would be to make a generative animation.</p>
+</section>
+<section id="setting-up" class="level2">
+<h2 class="anchored" data-anchor-id="setting-up">Setting Up</h2>
+<section id="loading-libraries" class="level3">
+<h3 class="anchored" data-anchor-id="loading-libraries">Loading Libraries</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(aRtsy) <span class="co"># to print out a few examples I like</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gridExtra) <span class="co"># to arrange multiple images in one plot</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2) <span class="co"># to draw my own pictures</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gganimate) <span class="co"># to turn multiple static images into an animation</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="inspiration-from-the-artsy-package" class="level2">
+<h2 class="anchored" data-anchor-id="inspiration-from-the-artsy-package">Inspiration from the aRtsy package</h2>
+<p>I’ll start by printing out a few examples using the basic functions of the aRtsy package. This is partly to showcase how easy it is for a user to play with, and partly to have an excuse to add nice artwork to my site. While it is easy to colorPalette() function provided by the aRtsy package to pick colors at random, making your own color palette is just a matter of picking a few colors you like, so that’s what I’ll do here. I just googled “hex color picker” and found <a href="https://www.w3schools.com/colors/colors_picker.asp">this site</a> which helped me identify the hex values for a few colors I liked.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>my_color_palette <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"#666699"</span>, <span class="st">"#a894d1"</span>, <span class="st">"#ab7ab8"</span>, <span class="st">"#406abf"</span>, <span class="st">"#1f42ad"</span>, <span class="st">"#3d0099"</span>, <span class="st">"#800040"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">5813</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">canvas_collatz</span>(<span class="at">colors =</span> my_color_palette, <span class="at">background =</span> <span class="st">"#000000"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1818</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">canvas_ribbons</span>(<span class="at">colors =</span> my_color_palette, <span class="at">background =</span> <span class="st">"#000000"</span>, <span class="at">triangle =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">4497</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">canvas_flame</span>(<span class="at">colors =</span> my_color_palette, <span class="at">background =</span> <span class="st">"#000000"</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">9819</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>p4 <span class="ot">&lt;-</span> <span class="fu">canvas_flow</span>(<span class="at">colors =</span> my_color_palette, <span class="at">background =</span> <span class="st">"#000000"</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.arrange</span>(p1, p2, p3, p4, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="generative_art_files/figure-html/artsy-examples-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>One of the most convenient aspects of the way these functions are designed is that they require very little input from the user to generate new random pictures. All it takes to generate a new image is to set a different seed. I will try to follow the same approach, designing a function to create a specific type of image and using a random seed to drive the contents generated for the images.</p>
+</section>
+<section id="initial-concept" class="level2">
+<h2 class="anchored" data-anchor-id="initial-concept">Initial Concept</h2>
+<p>The functions from the aRtsy package are each based on a specific algorithm, the output from which is transformed in such a way that it generates interesting images. I am not sure how to do that, so I will have to work backwards and start with an idea of what kind of images I want to generate, and then create an algorithm that accomplishes that task.</p>
+<p>Similar to aRtsy, I will rely on the ggplot2 package to draw images. This means I can then use the gganimate package (which works well with ggplot2) to turn multiple images into an animation. The gganimate package creates transitions for the different shapes that ggplot2 can draw. That means if I can represent my desired animation as multiple frames, or sequential plots, then the gganimate package can blend those frames together into an animation.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">9</span>, <span class="at">y =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">9</span>, <span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">9</span>, <span class="at">t =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">9</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>plot_list <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">9</span>, <span class="cf">function</span>(x){</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    df_subset <span class="ot">=</span> df[df<span class="sc">$</span>t <span class="sc">==</span> x,]</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    p <span class="ot">=</span> <span class="fu">ggplot</span>(df_subset, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y)) <span class="sc">+</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"#406abf"</span>) <span class="sc">+</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)) <span class="sc">+</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(p)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(<span class="st">"grid.arrange"</span>, <span class="fu">c</span>(plot_list, <span class="at">ncol =</span> <span class="dv">3</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="generative_art_files/figure-html/ggplot2-frames9-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">group =</span> id)) <span class="sc">+</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"#406abf"</span>) <span class="sc">+</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)) <span class="sc">+</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)) <span class="sc">+</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transition_time</span>(t) <span class="sc">+</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ease_aes</span>(<span class="st">"linear"</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="fu">animate</span>(p, <span class="at">nframes =</span> <span class="dv">90</span>, <span class="at">fps =</span> <span class="dv">30</span>, <span class="at">width =</span> <span class="dv">400</span>, <span class="at">height =</span> <span class="dv">400</span>, <span class="at">units =</span> <span class="st">"px"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="generative_art_files/figure-html/gganimate-frames9-1.gif" class="img-fluid"></p>
+</div>
+</div>
+<p>I will choose to use points because they are simple to work with and generating a lot of them at random might produce an interesting animation. In order to have something more interesting than just points moving around in the plot, I will introduce a polygon in the center. Randomness can enter this animation in a few ways, such as the number of sides this polygon has and its rotation, the positions of the points that will move through the plot, and the color scheme.</p>
+</section>
+<section id="designing-the-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="designing-the-algorithm">Designing the Algorithm</h2>
+<p>Since the intention is to incorporate randomness, I start by setting the seed so that the steps I am trying out can be reproduced for testing if necessary.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>There are a few pieces of the concept to design around which include the polygon, the points, and the transitions.</p>
+<section id="the-polygon" class="level3">
+<h3 class="anchored" data-anchor-id="the-polygon">The Polygon</h3>
+<p>Adding a polygon to the plot is probably most interesting if it takes up a lot of space and is at the center of the plot. If it is small and off to one side it won’t have much impact. My first idea is to start with the unit circle. Pick some number of points on the edge of the unit circle and then if you connect those points you should wind up with a shape inscribed in the unit circle. Randomness can be introduced by randomly picking how many sides this polygon should have. It should be an integer number which is at least 3 so that it has positive area, and no more than 10 because adding more and more sides will just make the polygons closer and closer to an actual circle which will mean less variation in the shapes which is less interesting.</p>
+<p>I start by picking the first point at random, which is just a random angle at which the point will exist on the unit circle. Then I randomly pick the number of sides the polygon will have. With those two pieces of information, the locations of the other points can be generated by taking equally spaced steps along the unit circle where the step size is based on the number of sides desired.</p>
+<div class="cell" data-fig.dim="[4,4]">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>theta <span class="ot">=</span> <span class="dv">2</span><span class="sc">*</span>pi<span class="sc">*</span><span class="fu">runif</span>(<span class="dv">1</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>n_sides <span class="ot">=</span> <span class="fu">sample</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">10</span>, <span class="dv">1</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># initialize all points as the same starting point</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>df_shape <span class="ot">=</span> <span class="fu">data.frame</span>(</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="fu">rep</span>(<span class="fu">cos</span>(theta), n_sides),</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="fu">rep</span>(<span class="fu">sin</span>(theta), n_sides)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co"># apply rotation for each point sequentially</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>n_sides){</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    df_shape<span class="sc">$</span>x[i] <span class="ot">=</span> df_shape<span class="sc">$</span>x[i<span class="dv">-1</span>] <span class="sc">*</span> <span class="fu">cos</span>(<span class="dv">2</span><span class="sc">*</span>pi<span class="sc">/</span>n_sides) <span class="sc">-</span> df_shape<span class="sc">$</span>y[i<span class="dv">-1</span>] <span class="sc">*</span> <span class="fu">sin</span>(<span class="dv">2</span><span class="sc">*</span>pi<span class="sc">/</span>n_sides)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    df_shape<span class="sc">$</span>y[i] <span class="ot">=</span> df_shape<span class="sc">$</span>x[i<span class="dv">-1</span>] <span class="sc">*</span> <span class="fu">sin</span>(<span class="dv">2</span><span class="sc">*</span>pi<span class="sc">/</span>n_sides) <span class="sc">+</span> df_shape<span class="sc">$</span>y[i<span class="dv">-1</span>] <span class="sc">*</span> <span class="fu">cos</span>(<span class="dv">2</span><span class="sc">*</span>pi<span class="sc">/</span>n_sides)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="fu">geom_polygon</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y), <span class="at">data =</span> df_shape, <span class="at">fill =</span> <span class="st">"#406abf"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="generative_art_files/figure-html/initialize-polygon-1.png" class="img-fluid" width="384"></p>
+</div>
+</div>
+</section>
+<section id="the-points" class="level3">
+<h3 class="anchored" data-anchor-id="the-points">The Points</h3>
+<p>Next comes the points. The points will have their positions and velocities randomly generated. The time at which they appear in the plot will also be random. I will start with 1000 points and see how well that works, it can be be updated easily later if necessary. They will move from the top left of the plot towards the bottom right covering about 5% of the distance per frame, plus or minus some random normal noise.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>n_obs <span class="ot">=</span> <span class="dv">1000</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>df_pts <span class="ot">=</span> <span class="fu">data.frame</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span>n_obs,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">t =</span> <span class="fu">sample.int</span>(<span class="dv">400</span>, <span class="at">size =</span> n_obs, <span class="at">replace =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="dv">0</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="fl">2.8</span><span class="sc">*</span><span class="fu">runif</span>(n_obs) <span class="sc">-</span> <span class="fl">1.4</span>,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">v_x =</span>  <span class="fl">0.1</span> <span class="sc">+</span> <span class="fl">0.02</span><span class="sc">*</span><span class="fu">rnorm</span>(n_obs),</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">v_y =</span> <span class="sc">-</span><span class="fl">0.1</span> <span class="sc">+</span> <span class="fl">0.02</span><span class="sc">*</span><span class="fu">rnorm</span>(n_obs)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="calculating-intersections" class="level3">
+<h3 class="anchored" data-anchor-id="calculating-intersections">Calculating Intersections</h3>
+<p>Since there are both points and a big polygon in the image, an obvious thing to do to make it more interesting is to change the behavior based on whether or not they overlap. This means figuring out when they are overlapping and when they are not.</p>
+<p>One way to think about this is that each point has an x and y velocity, so it is traveling in a straight path, or a line. Similarly, the polygon in the center has a random number of sides between 3 and 10, and if you think of those sides as continuing beyond the edges of the polygon then they are just lines. So we can figure out where the point enters and exits the polygon by calculating where these lines intersect.</p>
+<p>If we have two lines represented by an equation like <span class="math inline">\(y = mx + b\)</span> then the intersection will be where the x values are equal and the y values are also equal. We set <span class="math inline">\(y_1 = y_2\)</span> and <span class="math inline">\(x_1 = x_2\)</span> and solve for <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span>.</p>
+<p><span class="math display">\[
+\begin{aligned}
+  y_1 - m_1x_1 - b_1 &amp;= y_2 - m_2x_2 - b_2 \\
+  y - m_1x - b_1 &amp;= y - m_2x - b_2 \\
+  (m_2 - m_1)x &amp;= b_1 - b_2 \\
+  x &amp;= (b_1 - b_2)/(m_2 - m_1)
+\end{aligned}
+\]</span></p>
+<p>This gives the x-coordinate of the intersection point, which can be plugged back into the original equation for the line <span class="math inline">\(y_1 = m_1x_1 + b_1\)</span> to get the y-coordinate.</p>
+<p>If the polygon has 10 sides, there will now be 10 intersection points, one intersection of each point’s trajectory with each of the 10 lines. But the point should only pass through the polygon in 2 places. This is because the polygon is not actually 10 lines but 10 line segments, so many of the intersections that were just calculated lie outside the bounds of the polygon shape. These incorrect intersection points can be removed by adding a filter to condition on points that lie inside the unit circle.</p>
+<p><span class="math display">\[
+x^2 + y^2 &lt;= r^2 \hspace{35pt} (r = 1)
+\]</span></p>
+<p>Since the polygon was originally designed to be inscribed within the unit circle, that constraint can be used here to validate which intersection points are the correct ones. Furthermore, I can identify which of the two valid intersection points is the entry vs exit of point’s path through the polygon based on which has the lower x-value, since the velocity in the x direction is positive.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># add the first row of the polygon data frame to the end</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># to make it convenient to calculate parameters for polygon lines</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>df_shape_loop <span class="ot">=</span> df_shape</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>df_shape_loop <span class="ot">=</span> <span class="fu">rbind</span>(df_shape_loop, df_shape[<span class="dv">1</span>,])</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># initialize data frame to hold candidate intersection point</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># x-coordinates, will add a new column for each intersection</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>df_x_intersect <span class="ot">=</span> <span class="fu">rep</span>(<span class="cn">NA</span>, <span class="fu">nrow</span>(df_pts))</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co"># parameters for the lines from the points</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"># can be calculated outside the loop</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co"># m1 and b1 are both vectors</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">=</span> df_pts<span class="sc">$</span>v_y <span class="sc">/</span> df_pts<span class="sc">$</span>v_x</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>b1 <span class="ot">=</span> df_pts<span class="sc">$</span>y <span class="sc">-</span> m1<span class="sc">*</span>df_pts<span class="sc">$</span>x</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate one intersection for each line (segment) from the polygon</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="fu">nrow</span>(df_shape_loop)){</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># m2 and b2 are scalars here</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    m2 <span class="ot">=</span> (df_shape_loop<span class="sc">$</span>y[i] <span class="sc">-</span> df_shape_loop<span class="sc">$</span>y[i<span class="dv">-1</span>]) <span class="sc">/</span> (df_shape_loop<span class="sc">$</span>x[i] <span class="sc">-</span> df_shape_loop<span class="sc">$</span>x[i<span class="dv">-1</span>])</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    b2 <span class="ot">=</span> df_shape_loop<span class="sc">$</span>y[i] <span class="sc">-</span> m2<span class="sc">*</span>df_shape_loop<span class="sc">$</span>x[i]</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    x_intersect <span class="ot">=</span> (b1 <span class="sc">-</span> b2)<span class="sc">/</span>(m2 <span class="sc">-</span> m1)</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    df_x_intersect <span class="ot">=</span> <span class="fu">cbind</span>(df_x_intersect, x_intersect)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate corresponding y-coordinate for each intersection</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>df_y_intersect <span class="ot">=</span> <span class="fu">sweep</span>(df_x_intersect, <span class="dv">1</span>, m1, <span class="at">FUN=</span><span class="st">"*"</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>df_y_intersect <span class="ot">=</span> <span class="fu">sweep</span>(df_y_intersect, <span class="dv">1</span>, b1, <span class="at">FUN=</span><span class="st">"+"</span>)</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a><span class="co"># check which 2 out of the 3+ intersections are valid</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="co"># all valid intersection must lie within the unit circle</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>check_valid <span class="ot">=</span> (<span class="fu">sqrt</span>(df_x_intersect<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> df_y_intersect<span class="sc">^</span><span class="dv">2</span>) <span class="sc">&lt;=</span> <span class="dv">1</span>)</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>check_valid[check_valid <span class="sc">==</span> <span class="dv">0</span>] <span class="ot">=</span> <span class="cn">NA</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a><span class="co"># replace invalid intersection points with NA</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>df_x_intersect <span class="ot">=</span> df_x_intersect<span class="sc">*</span>check_valid</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate entry and exit points</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>x_entry <span class="ot">=</span> <span class="fu">apply</span>(df_x_intersect, <span class="dv">1</span>, min, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>x_entry <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.finite</span>(x_entry), x_entry, <span class="cn">NA</span>)</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>x_exit  <span class="ot">=</span> <span class="fu">apply</span>(df_x_intersect, <span class="dv">1</span>, max, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>x_exit  <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.finite</span>(x_exit), x_exit, <span class="cn">NA</span>)</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>y_entry <span class="ot">=</span> m1<span class="sc">*</span>x_entry <span class="sc">+</span> b1</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>y_exit  <span class="ot">=</span> m1<span class="sc">*</span>x_exit <span class="sc">+</span> b1</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a><span class="co"># consolidate entry and exit points into a data frame</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>df_entry_exit <span class="ot">=</span> <span class="fu">as.data.frame</span>(<span class="fu">cbind</span>(x_entry, y_entry, x_exit, y_exit))</span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a><span class="co"># cut speed of point in half inside the polygon</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>df_entry_exit<span class="sc">$</span>n_frames <span class="ot">=</span> <span class="fu">ceiling</span>((df_entry_exit<span class="sc">$</span>x_exit <span class="sc">-</span> df_entry_exit<span class="sc">$</span>x_entry)<span class="sc">/</span>(df_pts<span class="sc">$</span>v_x<span class="sc">/</span><span class="dv">2</span>))</span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>df_entry_exit<span class="sc">$</span>v_x <span class="ot">=</span> (df_entry_exit<span class="sc">$</span>x_exit <span class="sc">-</span> df_entry_exit<span class="sc">$</span>x_entry)<span class="sc">/</span>df_entry_exit<span class="sc">$</span>n_frames</span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>df_entry_exit<span class="sc">$</span>v_y <span class="ot">=</span> (df_entry_exit<span class="sc">$</span>y_exit <span class="sc">-</span> df_entry_exit<span class="sc">$</span>y_entry)<span class="sc">/</span>df_entry_exit<span class="sc">$</span>n_frames</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Not all of the randomly generated points will actually come into contact with the polygon. This will require handling separately. If a point will never come into contact with the polygon, it will stay unchanged and be flagged as not in contact. If a point does contact the polygon at some point, I will change it’s initial value to be the point where it first contacts the polygon and flag it as in contact.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df_pts<span class="sc">$</span>x <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>x_entry), <span class="dv">0</span>, df_entry_exit<span class="sc">$</span>x_entry)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>df_pts<span class="sc">$</span>y <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>y_entry), df_pts<span class="sc">$</span>y, df_entry_exit<span class="sc">$</span>y_entry)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>df_pts<span class="sc">$</span>contact <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>x_entry), <span class="dv">0</span>, <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="calculating-movement" class="level3">
+<h3 class="anchored" data-anchor-id="calculating-movement">Calculating Movement</h3>
+<p>Now that all the points have been initialized I need to calculate how their positions will change over time. As the time step increases by one, the x and y positions should update based on the v_x and v_y velocity parameters. Since points will start either in the center of the plot or where they first make contact with the polygon, I will work out their motion backwards from their initialized location. I can then handle motion while in contact with the polygon as a separate case, and then motion forwards again after exiting the polygon.</p>
+<p>The first thing to do is to save the initialized state in a new variable so it can be used again later. After that, the data frame that contains the points will be updated to add their positions moving backwards in time.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># save initialized state</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>df_init <span class="ot">=</span> df_pts</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># work backwards 15 frames</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># to get position of points before contact</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># with polygon or center of canvas</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>df_backwards <span class="ot">=</span> df_init</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>df_backwards<span class="sc">$</span>contact <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>){</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    df_backwards<span class="sc">$</span>t <span class="ot">=</span> df_backwards<span class="sc">$</span>t <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    df_backwards<span class="sc">$</span>x <span class="ot">=</span> df_backwards<span class="sc">$</span>x <span class="sc">-</span> df_backwards<span class="sc">$</span>v_x</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    df_backwards<span class="sc">$</span>y <span class="ot">=</span> df_backwards<span class="sc">$</span>y <span class="sc">-</span> df_backwards<span class="sc">$</span>v_y</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># append to points data</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    df_pts <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_backwards)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Next comes movement within the polygon. Not all point come into contact with the polygon, so this should only be done for the points where contact occurs.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get the subset of initialized points which</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># make contact with the polygon</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>df_within <span class="ot">=</span> df_init</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>df_within<span class="sc">$</span>v_x <span class="ot">=</span> df_entry_exit<span class="sc">$</span>v_x</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>df_within<span class="sc">$</span>v_y <span class="ot">=</span> df_entry_exit<span class="sc">$</span>v_y</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>df_within<span class="sc">$</span>n_frames <span class="ot">=</span> df_entry_exit<span class="sc">$</span>n_frames</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>df_within <span class="ot">=</span> df_within[df_within<span class="sc">$</span>contact <span class="sc">==</span> <span class="dv">1</span>,]</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># add one frame at contact position</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co"># basically, the point will appear to pause</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co"># when it hits the polygon</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>df_within<span class="sc">$</span>t <span class="ot">=</span> df_within<span class="sc">$</span>t <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>df_pts <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_within[,<span class="sc">-</span><span class="fu">which</span>(<span class="fu">colnames</span>(df_within)<span class="sc">==</span><span class="st">"n_frames"</span>)])</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co"># different points will spend different amounts of time</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="co"># traversing the polygon, so only keep iterating</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="co"># for the points that have not reached the other side yet</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">max</span>(df_within<span class="sc">$</span>n_frames)){</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    df_within <span class="ot">=</span> df_within[df_within<span class="sc">$</span>n_frames <span class="sc">&gt;=</span> i,]</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    df_within<span class="sc">$</span>t <span class="ot">=</span> df_within<span class="sc">$</span>t <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    df_within<span class="sc">$</span>x <span class="ot">=</span> df_within<span class="sc">$</span>x <span class="sc">+</span> df_within<span class="sc">$</span>v_x</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    df_within<span class="sc">$</span>y <span class="ot">=</span> df_within<span class="sc">$</span>y <span class="sc">+</span> df_within<span class="sc">$</span>v_y</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># append to points data</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    df_pts <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_within[,<span class="sc">-</span><span class="fu">which</span>(<span class="fu">colnames</span>(df_within)<span class="sc">==</span><span class="st">"n_frames"</span>)])</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Finally there is the forwards movement either from the center of the plot to the right or from exiting the polygon to the right.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># reset locations for points that contact the polygon</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># to be at the location where they exit, and also add 2</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># to their time index to create a delay on exit</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>df_forwards <span class="ot">=</span> df_init</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>df_forwards<span class="sc">$</span>x <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>x_exit), df_init<span class="sc">$</span>x, df_entry_exit<span class="sc">$</span>x_exit)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>df_forwards<span class="sc">$</span>y <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>y_exit), df_init<span class="sc">$</span>y, df_entry_exit<span class="sc">$</span>y_exit)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>df_forwards<span class="sc">$</span>t <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>n_frames), df_forwards<span class="sc">$</span>t, df_forwards<span class="sc">$</span>t <span class="sc">+</span> df_entry_exit<span class="sc">$</span>n_frames <span class="sc">+</span> <span class="dv">2</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>df_forwards<span class="sc">$</span>contact <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># work forwards 15 frames past exit from polygon</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co"># to get position of points as they exit the canvas</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>){</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    df_forwards<span class="sc">$</span>t <span class="ot">=</span> df_forwards<span class="sc">$</span>t <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    df_forwards<span class="sc">$</span>x <span class="ot">=</span> df_forwards<span class="sc">$</span>x <span class="sc">+</span> df_forwards<span class="sc">$</span>v_x</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    df_forwards<span class="sc">$</span>y <span class="ot">=</span> df_forwards<span class="sc">$</span>y <span class="sc">+</span> df_forwards<span class="sc">$</span>v_y</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># append to points data</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    df_pts <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_forwards)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="cleanup" class="level3">
+<h3 class="anchored" data-anchor-id="cleanup">Cleanup</h3>
+<p>While calculating point positions, I picked a number of time steps to make sure that motion within the bounds of the plot is being captured. If the plot x-axis covers [-1.25, 1.25] and average velocity in the x direction is 0.1 then it should take around (1.2 + 1.2)/0.1 = 24 time steps to get from side of the plot to the other, or 12 steps backwards from the center of the plot, and 12 steps forwards. In previous sections I calculated 15 time steps in each direction to be conservative due to the randomness added to the point velocities. In addition to this, motion within the polygon is handled separately. There will also be cases where points only pass through small sections of the plot such as at the top right or bottom left. This means there are many point locations that have been calculated which are outside the bounds of the plot and should be thrown away.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>df_pts <span class="ot">=</span> df_pts[(df_pts<span class="sc">$</span>x <span class="sc">&gt;=</span> <span class="sc">-</span><span class="fl">1.2</span>) <span class="sc">&amp;</span> (df_pts<span class="sc">$</span>x <span class="sc">&lt;=</span> <span class="fl">1.2</span>),]</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>df_pts <span class="ot">=</span> df_pts[(df_pts<span class="sc">$</span>y <span class="sc">&gt;=</span> <span class="sc">-</span><span class="fl">1.2</span>) <span class="sc">&amp;</span> (df_pts<span class="sc">$</span>y <span class="sc">&lt;=</span> <span class="fl">1.2</span>),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="first-animation" class="level2">
+<h2 class="anchored" data-anchor-id="first-animation">First Animation</h2>
+<p>All the pieces are in place. Now it’s time to combine all these time and position values into an animation. Here’s a first pass at fitting it all together.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>margin <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_polygon</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y), <span class="at">data =</span> df_shape, <span class="at">fill =</span> my_color_palette[<span class="dv">4</span>]) <span class="sc">+</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">group =</span> id, <span class="at">color =</span> <span class="fu">as.factor</span>(contact)), <span class="at">data =</span> df_pts) <span class="sc">+</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_color_manual</span>(<span class="at">values =</span> my_color_palette[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>]) <span class="sc">+</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.2</span>, <span class="fl">1.2</span>)) <span class="sc">+</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.2</span>, <span class="fl">1.2</span>)) <span class="sc">+</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.line =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">"#000000"</span>, <span class="at">colour =</span> <span class="st">"#000000"</span>),</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.border =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.margin =</span> ggplot2<span class="sc">::</span><span class="fu">unit</span>(<span class="fu">rep</span>(margin, <span class="dv">4</span>), <span class="st">"lines"</span>),</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">strip.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">strip.text =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>()</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transition_time</span>(t) <span class="sc">+</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ease_aes</span>(<span class="st">"linear"</span>)</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="fu">animate</span>(p, <span class="at">nframes =</span> <span class="dv">1500</span>, <span class="at">fps =</span> <span class="dv">30</span>, <span class="at">width =</span> <span class="dv">400</span>, <span class="at">height =</span> <span class="dv">400</span>, <span class="at">units =</span> <span class="st">"px"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="generative_art_files/figure-html/first-animation-1.gif" class="img-fluid"></p>
+</div>
+</div>
+<section id="a-smooth-loop" class="level3">
+<h3 class="anchored" data-anchor-id="a-smooth-loop">A Smooth Loop</h3>
+<p>This looks pretty good, but there are clear points where the animation is beginning and ending. One more change could be made here to make the animation loop more smoothly or seamlessly.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># take points from just after the start of the animation</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># and use them to replace points towards the end</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>pts_start  <span class="ot">=</span> <span class="fu">unique</span>(df_pts<span class="sc">$</span>id[df_pts<span class="sc">$</span>t <span class="sc">==</span> <span class="dv">51</span>])</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>pts_remove <span class="ot">=</span> <span class="fu">unique</span>(df_pts<span class="sc">$</span>id[df_pts<span class="sc">$</span>t <span class="sc">&gt;=</span> <span class="dv">350</span>])</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>df_loop    <span class="ot">=</span> df_pts[df_pts<span class="sc">$</span>id <span class="sc">%in%</span> pts_start,]</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>df_loop<span class="sc">$</span>t  <span class="ot">=</span> df_loop<span class="sc">$</span>t <span class="sc">+</span> <span class="dv">299</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>df_loop<span class="sc">$</span>id <span class="ot">=</span> df_loop<span class="sc">$</span>id <span class="sc">+</span> n_obs</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>df_pts     <span class="ot">=</span> df_pts[<span class="sc">!</span>(df_pts<span class="sc">$</span>id <span class="sc">%in%</span> pts_remove),]</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>df_pts     <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_loop)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co"># limit data shown to the window that starts and ends</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co"># with the copied points</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>df_plot <span class="ot">=</span> df_pts[(df_pts<span class="sc">$</span>t <span class="sc">&gt;=</span> <span class="dv">51</span>) <span class="sc">&amp;</span> (df_pts<span class="sc">$</span>t <span class="sc">&lt;=</span> <span class="dv">350</span>),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now the animation should look like a continuous loop with no obvious starting or stopping point.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>margin <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_polygon</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y), <span class="at">data =</span> df_shape, <span class="at">fill =</span> my_color_palette[<span class="dv">4</span>]) <span class="sc">+</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">group =</span> id, <span class="at">color =</span> <span class="fu">as.factor</span>(contact)), <span class="at">data =</span> df_plot) <span class="sc">+</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_color_manual</span>(<span class="at">values =</span> my_color_palette[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>]) <span class="sc">+</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.2</span>, <span class="fl">1.2</span>)) <span class="sc">+</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.2</span>, <span class="fl">1.2</span>)) <span class="sc">+</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.line =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">"#000000"</span>, <span class="at">colour =</span> <span class="st">"#000000"</span>),</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.border =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.margin =</span> ggplot2<span class="sc">::</span><span class="fu">unit</span>(<span class="fu">rep</span>(margin, <span class="dv">4</span>), <span class="st">"lines"</span>),</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">strip.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">strip.text =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>()</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transition_time</span>(t) <span class="sc">+</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ease_aes</span>(<span class="st">"linear"</span>)</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="fu">animate</span>(p, <span class="at">nframes =</span> <span class="dv">1500</span>, <span class="at">fps =</span> <span class="dv">30</span>, <span class="at">width =</span> <span class="dv">400</span>, <span class="at">height =</span> <span class="dv">400</span>, <span class="at">units =</span> <span class="st">"px"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="generative_art_files/figure-html/second-animation-1.gif" class="img-fluid"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="final-function" class="level2">
+<h2 class="anchored" data-anchor-id="final-function">Final Function</h2>
+<p>The last piece of the puzzle is to wrap all of this up into one function so that it can be used the same way as the functions in the aRtsy package. It will take in 3 optional inputs. One is the seed, which can be set outside the function like in aRtsy, or can be passed as an argument. Another is a color palette, if the user doesn’t provide one that is fine, it should just pick colors randomly. Last is a background color, with similar behavior where it is picked randomly if not specified.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>draw_polygon_animation <span class="ot">=</span> <span class="cf">function</span>(<span class="at">seed =</span> <span class="cn">NULL</span>, <span class="at">color_palette =</span> <span class="cn">NULL</span>, <span class="at">background =</span> <span class="cn">NULL</span>){</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># set seed here if it was passed as an argument</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.null</span>(seed)){ <span class="fu">set.seed</span>(seed) }</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># if color palette is given use that</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># otherwise pick randomly from default colors</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    color_vec <span class="ot">=</span> grDevices<span class="sc">::</span><span class="fu">colors</span>()[<span class="fu">grep</span>(<span class="st">'gr(a|e)y'</span>, grDevices<span class="sc">::</span><span class="fu">colors</span>(), <span class="at">invert =</span> T)]</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.null</span>(color_palette)){ color_vec <span class="ot">=</span> color_palette }</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># if background color is provided use it as the first color</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># otherwise pick randomly</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    colors4 <span class="ot">=</span> <span class="fu">sample</span>(color_vec, <span class="dv">4</span>)</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.null</span>(background)){ colors4[<span class="dv">1</span>] <span class="ot">=</span> background }</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># picking start rotation and sides for polygon randomly</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    theta <span class="ot">=</span> <span class="dv">2</span><span class="sc">*</span>pi<span class="sc">*</span><span class="fu">runif</span>(<span class="dv">1</span>)</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    n_sides <span class="ot">=</span> <span class="fu">sample</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">10</span>, <span class="dv">1</span>)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># initialize all polygon vertices as the same starting point</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>    df_shape <span class="ot">=</span> <span class="fu">data.frame</span>(</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="fu">rep</span>(<span class="fu">cos</span>(theta), n_sides),</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>        <span class="at">y =</span> <span class="fu">rep</span>(<span class="fu">sin</span>(theta), n_sides)</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># apply rotation for each point sequentially</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>n_sides){</span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>        df_shape<span class="sc">$</span>x[i] <span class="ot">=</span> df_shape<span class="sc">$</span>x[i<span class="dv">-1</span>] <span class="sc">*</span> <span class="fu">cos</span>(<span class="dv">2</span><span class="sc">*</span>pi<span class="sc">/</span>n_sides) <span class="sc">-</span> df_shape<span class="sc">$</span>y[i<span class="dv">-1</span>] <span class="sc">*</span> <span class="fu">sin</span>(<span class="dv">2</span><span class="sc">*</span>pi<span class="sc">/</span>n_sides)</span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>        df_shape<span class="sc">$</span>y[i] <span class="ot">=</span> df_shape<span class="sc">$</span>x[i<span class="dv">-1</span>] <span class="sc">*</span> <span class="fu">sin</span>(<span class="dv">2</span><span class="sc">*</span>pi<span class="sc">/</span>n_sides) <span class="sc">+</span> df_shape<span class="sc">$</span>y[i<span class="dv">-1</span>] <span class="sc">*</span> <span class="fu">cos</span>(<span class="dv">2</span><span class="sc">*</span>pi<span class="sc">/</span>n_sides)</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># initialize points</span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>    n_obs <span class="ot">=</span> <span class="dv">1000</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>    df_pts <span class="ot">=</span> <span class="fu">data.frame</span>(</span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>        <span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span>n_obs,</span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>        <span class="at">t =</span> <span class="fu">sample.int</span>(<span class="dv">400</span>, <span class="at">size =</span> n_obs, <span class="at">replace =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="dv">0</span>,</span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>        <span class="at">y =</span> <span class="fl">2.8</span><span class="sc">*</span><span class="fu">runif</span>(n_obs) <span class="sc">-</span> <span class="fl">1.4</span>,</span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>        <span class="at">v_x =</span>  <span class="fl">0.1</span> <span class="sc">+</span> <span class="fl">0.02</span><span class="sc">*</span><span class="fu">rnorm</span>(n_obs),</span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>        <span class="at">v_y =</span> <span class="sc">-</span><span class="fl">0.1</span> <span class="sc">+</span> <span class="fl">0.02</span><span class="sc">*</span><span class="fu">rnorm</span>(n_obs)</span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>    <span class="co"># add the first row of the polygon data frame to the end</span></span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to make it convenient to calculate parameters for polygon lines</span></span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>    df_shape_loop <span class="ot">=</span> df_shape</span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a>    df_shape_loop <span class="ot">=</span> <span class="fu">rbind</span>(df_shape_loop, df_shape[<span class="dv">1</span>,])</span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a>    <span class="co"># initialize data frame to hold candidate intersection point</span></span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a>    <span class="co"># x-coordinates, will add a new column for each intersection</span></span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a>    df_x_intersect <span class="ot">=</span> <span class="fu">rep</span>(<span class="cn">NA</span>, <span class="fu">nrow</span>(df_pts))</span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a>    <span class="co"># parameters for the lines from the points</span></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>    <span class="co"># can be calculated outside the loop</span></span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>    <span class="co"># m1 and b1 are both vectors</span></span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>    m1 <span class="ot">=</span> df_pts<span class="sc">$</span>v_y <span class="sc">/</span> df_pts<span class="sc">$</span>v_x</span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>    b1 <span class="ot">=</span> df_pts<span class="sc">$</span>y <span class="sc">-</span> m1<span class="sc">*</span>df_pts<span class="sc">$</span>x</span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>    <span class="co"># calculate one intersection for each line (segment) from the polygon</span></span>
+<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="fu">nrow</span>(df_shape_loop)){</span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>        <span class="co"># m2 and b2 are scalars here</span></span>
+<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a>        m2 <span class="ot">=</span> (df_shape_loop<span class="sc">$</span>y[i] <span class="sc">-</span> df_shape_loop<span class="sc">$</span>y[i<span class="dv">-1</span>]) <span class="sc">/</span> (df_shape_loop<span class="sc">$</span>x[i] <span class="sc">-</span> df_shape_loop<span class="sc">$</span>x[i<span class="dv">-1</span>])</span>
+<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a>        b2 <span class="ot">=</span> df_shape_loop<span class="sc">$</span>y[i] <span class="sc">-</span> m2<span class="sc">*</span>df_shape_loop<span class="sc">$</span>x[i]</span>
+<span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a>        x_intersect <span class="ot">=</span> (b1 <span class="sc">-</span> b2)<span class="sc">/</span>(m2 <span class="sc">-</span> m1)</span>
+<span id="cb17-63"><a href="#cb17-63" aria-hidden="true" tabindex="-1"></a>        df_x_intersect <span class="ot">=</span> <span class="fu">cbind</span>(df_x_intersect, x_intersect)</span>
+<span id="cb17-64"><a href="#cb17-64" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb17-65"><a href="#cb17-65" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-66"><a href="#cb17-66" aria-hidden="true" tabindex="-1"></a>    <span class="co"># calculate corresponding y-coordinate for each intersection</span></span>
+<span id="cb17-67"><a href="#cb17-67" aria-hidden="true" tabindex="-1"></a>    df_y_intersect <span class="ot">=</span> <span class="fu">sweep</span>(df_x_intersect, <span class="dv">1</span>, m1, <span class="at">FUN=</span><span class="st">"*"</span>)</span>
+<span id="cb17-68"><a href="#cb17-68" aria-hidden="true" tabindex="-1"></a>    df_y_intersect <span class="ot">=</span> <span class="fu">sweep</span>(df_y_intersect, <span class="dv">1</span>, b1, <span class="at">FUN=</span><span class="st">"+"</span>)</span>
+<span id="cb17-69"><a href="#cb17-69" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-70"><a href="#cb17-70" aria-hidden="true" tabindex="-1"></a>    <span class="co"># check which 2 out of the 3+ intersections are valid</span></span>
+<span id="cb17-71"><a href="#cb17-71" aria-hidden="true" tabindex="-1"></a>    <span class="co"># all valid intersection must lie within the unit circle</span></span>
+<span id="cb17-72"><a href="#cb17-72" aria-hidden="true" tabindex="-1"></a>    check_valid <span class="ot">=</span> (<span class="fu">sqrt</span>(df_x_intersect<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> df_y_intersect<span class="sc">^</span><span class="dv">2</span>) <span class="sc">&lt;=</span> <span class="dv">1</span>)</span>
+<span id="cb17-73"><a href="#cb17-73" aria-hidden="true" tabindex="-1"></a>    check_valid[check_valid <span class="sc">==</span> <span class="dv">0</span>] <span class="ot">=</span> <span class="cn">NA</span></span>
+<span id="cb17-74"><a href="#cb17-74" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-75"><a href="#cb17-75" aria-hidden="true" tabindex="-1"></a>    <span class="co"># replace invalid intersection points with NA</span></span>
+<span id="cb17-76"><a href="#cb17-76" aria-hidden="true" tabindex="-1"></a>    df_x_intersect <span class="ot">=</span> df_x_intersect<span class="sc">*</span>check_valid</span>
+<span id="cb17-77"><a href="#cb17-77" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-78"><a href="#cb17-78" aria-hidden="true" tabindex="-1"></a>    <span class="co"># calculate entry and exit points</span></span>
+<span id="cb17-79"><a href="#cb17-79" aria-hidden="true" tabindex="-1"></a>    x_entry <span class="ot">=</span> <span class="fu">apply</span>(df_x_intersect, <span class="dv">1</span>, min, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-80"><a href="#cb17-80" aria-hidden="true" tabindex="-1"></a>    x_entry <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.finite</span>(x_entry), x_entry, <span class="cn">NA</span>)</span>
+<span id="cb17-81"><a href="#cb17-81" aria-hidden="true" tabindex="-1"></a>    x_exit  <span class="ot">=</span> <span class="fu">apply</span>(df_x_intersect, <span class="dv">1</span>, max, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-82"><a href="#cb17-82" aria-hidden="true" tabindex="-1"></a>    x_exit  <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.finite</span>(x_exit), x_exit, <span class="cn">NA</span>)</span>
+<span id="cb17-83"><a href="#cb17-83" aria-hidden="true" tabindex="-1"></a>    y_entry <span class="ot">=</span> m1<span class="sc">*</span>x_entry <span class="sc">+</span> b1</span>
+<span id="cb17-84"><a href="#cb17-84" aria-hidden="true" tabindex="-1"></a>    y_exit  <span class="ot">=</span> m1<span class="sc">*</span>x_exit <span class="sc">+</span> b1</span>
+<span id="cb17-85"><a href="#cb17-85" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-86"><a href="#cb17-86" aria-hidden="true" tabindex="-1"></a>    <span class="co"># consolidate entry and exit points into a data frame</span></span>
+<span id="cb17-87"><a href="#cb17-87" aria-hidden="true" tabindex="-1"></a>    df_entry_exit <span class="ot">=</span> <span class="fu">as.data.frame</span>(<span class="fu">cbind</span>(x_entry, y_entry, x_exit, y_exit))</span>
+<span id="cb17-88"><a href="#cb17-88" aria-hidden="true" tabindex="-1"></a>    <span class="co"># cut speed of point in half inside the polygon</span></span>
+<span id="cb17-89"><a href="#cb17-89" aria-hidden="true" tabindex="-1"></a>    df_entry_exit<span class="sc">$</span>n_frames <span class="ot">=</span> <span class="fu">ceiling</span>((df_entry_exit<span class="sc">$</span>x_exit <span class="sc">-</span> df_entry_exit<span class="sc">$</span>x_entry)<span class="sc">/</span>(df_pts<span class="sc">$</span>v_x<span class="sc">/</span><span class="dv">2</span>))</span>
+<span id="cb17-90"><a href="#cb17-90" aria-hidden="true" tabindex="-1"></a>    df_entry_exit<span class="sc">$</span>v_x <span class="ot">=</span> (df_entry_exit<span class="sc">$</span>x_exit <span class="sc">-</span> df_entry_exit<span class="sc">$</span>x_entry)<span class="sc">/</span>df_entry_exit<span class="sc">$</span>n_frames</span>
+<span id="cb17-91"><a href="#cb17-91" aria-hidden="true" tabindex="-1"></a>    df_entry_exit<span class="sc">$</span>v_y <span class="ot">=</span> (df_entry_exit<span class="sc">$</span>y_exit <span class="sc">-</span> df_entry_exit<span class="sc">$</span>y_entry)<span class="sc">/</span>df_entry_exit<span class="sc">$</span>n_frames</span>
+<span id="cb17-92"><a href="#cb17-92" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-93"><a href="#cb17-93" aria-hidden="true" tabindex="-1"></a>    <span class="co"># reset starting locations</span></span>
+<span id="cb17-94"><a href="#cb17-94" aria-hidden="true" tabindex="-1"></a>    df_pts<span class="sc">$</span>x <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>x_entry), <span class="dv">0</span>, df_entry_exit<span class="sc">$</span>x_entry)</span>
+<span id="cb17-95"><a href="#cb17-95" aria-hidden="true" tabindex="-1"></a>    df_pts<span class="sc">$</span>y <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>y_entry), df_pts<span class="sc">$</span>y, df_entry_exit<span class="sc">$</span>y_entry)</span>
+<span id="cb17-96"><a href="#cb17-96" aria-hidden="true" tabindex="-1"></a>    df_pts<span class="sc">$</span>contact <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>x_entry), <span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb17-97"><a href="#cb17-97" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-98"><a href="#cb17-98" aria-hidden="true" tabindex="-1"></a>    <span class="co"># save initialized state</span></span>
+<span id="cb17-99"><a href="#cb17-99" aria-hidden="true" tabindex="-1"></a>    df_init <span class="ot">=</span> df_pts</span>
+<span id="cb17-100"><a href="#cb17-100" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-101"><a href="#cb17-101" aria-hidden="true" tabindex="-1"></a>    <span class="co"># work backwards 15 frames</span></span>
+<span id="cb17-102"><a href="#cb17-102" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to get position of points before contact</span></span>
+<span id="cb17-103"><a href="#cb17-103" aria-hidden="true" tabindex="-1"></a>    <span class="co"># with polygon or center of canvas</span></span>
+<span id="cb17-104"><a href="#cb17-104" aria-hidden="true" tabindex="-1"></a>    df_backwards <span class="ot">=</span> df_init</span>
+<span id="cb17-105"><a href="#cb17-105" aria-hidden="true" tabindex="-1"></a>    df_backwards<span class="sc">$</span>contact <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb17-106"><a href="#cb17-106" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-107"><a href="#cb17-107" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>){</span>
+<span id="cb17-108"><a href="#cb17-108" aria-hidden="true" tabindex="-1"></a>        df_backwards<span class="sc">$</span>t <span class="ot">=</span> df_backwards<span class="sc">$</span>t <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb17-109"><a href="#cb17-109" aria-hidden="true" tabindex="-1"></a>        df_backwards<span class="sc">$</span>x <span class="ot">=</span> df_backwards<span class="sc">$</span>x <span class="sc">-</span> df_backwards<span class="sc">$</span>v_x</span>
+<span id="cb17-110"><a href="#cb17-110" aria-hidden="true" tabindex="-1"></a>        df_backwards<span class="sc">$</span>y <span class="ot">=</span> df_backwards<span class="sc">$</span>y <span class="sc">-</span> df_backwards<span class="sc">$</span>v_y</span>
+<span id="cb17-111"><a href="#cb17-111" aria-hidden="true" tabindex="-1"></a>        <span class="co"># append to points data</span></span>
+<span id="cb17-112"><a href="#cb17-112" aria-hidden="true" tabindex="-1"></a>        df_pts <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_backwards)</span>
+<span id="cb17-113"><a href="#cb17-113" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb17-114"><a href="#cb17-114" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-115"><a href="#cb17-115" aria-hidden="true" tabindex="-1"></a>    <span class="co"># get the subset of initialized points which</span></span>
+<span id="cb17-116"><a href="#cb17-116" aria-hidden="true" tabindex="-1"></a>    <span class="co"># make contact with the polygon</span></span>
+<span id="cb17-117"><a href="#cb17-117" aria-hidden="true" tabindex="-1"></a>    df_within <span class="ot">=</span> df_init</span>
+<span id="cb17-118"><a href="#cb17-118" aria-hidden="true" tabindex="-1"></a>    df_within<span class="sc">$</span>v_x <span class="ot">=</span> df_entry_exit<span class="sc">$</span>v_x</span>
+<span id="cb17-119"><a href="#cb17-119" aria-hidden="true" tabindex="-1"></a>    df_within<span class="sc">$</span>v_y <span class="ot">=</span> df_entry_exit<span class="sc">$</span>v_y</span>
+<span id="cb17-120"><a href="#cb17-120" aria-hidden="true" tabindex="-1"></a>    df_within<span class="sc">$</span>n_frames <span class="ot">=</span> df_entry_exit<span class="sc">$</span>n_frames</span>
+<span id="cb17-121"><a href="#cb17-121" aria-hidden="true" tabindex="-1"></a>    df_within <span class="ot">=</span> df_within[df_within<span class="sc">$</span>contact <span class="sc">==</span> <span class="dv">1</span>,]</span>
+<span id="cb17-122"><a href="#cb17-122" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-123"><a href="#cb17-123" aria-hidden="true" tabindex="-1"></a>    <span class="co"># add one frame at contact position</span></span>
+<span id="cb17-124"><a href="#cb17-124" aria-hidden="true" tabindex="-1"></a>    <span class="co"># basically, the point will appear to pause</span></span>
+<span id="cb17-125"><a href="#cb17-125" aria-hidden="true" tabindex="-1"></a>    <span class="co"># when it hits the polygon</span></span>
+<span id="cb17-126"><a href="#cb17-126" aria-hidden="true" tabindex="-1"></a>    df_within<span class="sc">$</span>t <span class="ot">=</span> df_within<span class="sc">$</span>t <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb17-127"><a href="#cb17-127" aria-hidden="true" tabindex="-1"></a>    df_pts <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_within[,<span class="sc">-</span><span class="fu">which</span>(<span class="fu">colnames</span>(df_within)<span class="sc">==</span><span class="st">"n_frames"</span>)])</span>
+<span id="cb17-128"><a href="#cb17-128" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-129"><a href="#cb17-129" aria-hidden="true" tabindex="-1"></a>    <span class="co"># different points will spend different amounts of time</span></span>
+<span id="cb17-130"><a href="#cb17-130" aria-hidden="true" tabindex="-1"></a>    <span class="co"># traversing the polygon, so only keep iterating</span></span>
+<span id="cb17-131"><a href="#cb17-131" aria-hidden="true" tabindex="-1"></a>    <span class="co"># for the points that have not reached the other side yet</span></span>
+<span id="cb17-132"><a href="#cb17-132" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">max</span>(df_within<span class="sc">$</span>n_frames)){</span>
+<span id="cb17-133"><a href="#cb17-133" aria-hidden="true" tabindex="-1"></a>        df_within <span class="ot">=</span> df_within[df_within<span class="sc">$</span>n_frames <span class="sc">&gt;=</span> i,]</span>
+<span id="cb17-134"><a href="#cb17-134" aria-hidden="true" tabindex="-1"></a>        df_within<span class="sc">$</span>t <span class="ot">=</span> df_within<span class="sc">$</span>t <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb17-135"><a href="#cb17-135" aria-hidden="true" tabindex="-1"></a>        df_within<span class="sc">$</span>x <span class="ot">=</span> df_within<span class="sc">$</span>x <span class="sc">+</span> df_within<span class="sc">$</span>v_x</span>
+<span id="cb17-136"><a href="#cb17-136" aria-hidden="true" tabindex="-1"></a>        df_within<span class="sc">$</span>y <span class="ot">=</span> df_within<span class="sc">$</span>y <span class="sc">+</span> df_within<span class="sc">$</span>v_y</span>
+<span id="cb17-137"><a href="#cb17-137" aria-hidden="true" tabindex="-1"></a>        <span class="co"># append to points data</span></span>
+<span id="cb17-138"><a href="#cb17-138" aria-hidden="true" tabindex="-1"></a>        df_pts <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_within[,<span class="sc">-</span><span class="fu">which</span>(<span class="fu">colnames</span>(df_within)<span class="sc">==</span><span class="st">"n_frames"</span>)])</span>
+<span id="cb17-139"><a href="#cb17-139" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb17-140"><a href="#cb17-140" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-141"><a href="#cb17-141" aria-hidden="true" tabindex="-1"></a>    <span class="co"># reset locations for points that contact the polygon</span></span>
+<span id="cb17-142"><a href="#cb17-142" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to be at the location where they exit, and also add 2</span></span>
+<span id="cb17-143"><a href="#cb17-143" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to their time index to create a delay on exit</span></span>
+<span id="cb17-144"><a href="#cb17-144" aria-hidden="true" tabindex="-1"></a>    df_forwards <span class="ot">=</span> df_init</span>
+<span id="cb17-145"><a href="#cb17-145" aria-hidden="true" tabindex="-1"></a>    df_forwards<span class="sc">$</span>x <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>x_exit), df_init<span class="sc">$</span>x, df_entry_exit<span class="sc">$</span>x_exit)</span>
+<span id="cb17-146"><a href="#cb17-146" aria-hidden="true" tabindex="-1"></a>    df_forwards<span class="sc">$</span>y <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>y_exit), df_init<span class="sc">$</span>y, df_entry_exit<span class="sc">$</span>y_exit)</span>
+<span id="cb17-147"><a href="#cb17-147" aria-hidden="true" tabindex="-1"></a>    df_forwards<span class="sc">$</span>t <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(df_entry_exit<span class="sc">$</span>n_frames), df_forwards<span class="sc">$</span>t, df_forwards<span class="sc">$</span>t <span class="sc">+</span> df_entry_exit<span class="sc">$</span>n_frames <span class="sc">+</span> <span class="dv">2</span>)</span>
+<span id="cb17-148"><a href="#cb17-148" aria-hidden="true" tabindex="-1"></a>    df_forwards<span class="sc">$</span>contact <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb17-149"><a href="#cb17-149" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-150"><a href="#cb17-150" aria-hidden="true" tabindex="-1"></a>    <span class="co"># work forwards 15 frames past exit from polygon</span></span>
+<span id="cb17-151"><a href="#cb17-151" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to get position of points as they exit the canvas</span></span>
+<span id="cb17-152"><a href="#cb17-152" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>){</span>
+<span id="cb17-153"><a href="#cb17-153" aria-hidden="true" tabindex="-1"></a>        df_forwards<span class="sc">$</span>t <span class="ot">=</span> df_forwards<span class="sc">$</span>t <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb17-154"><a href="#cb17-154" aria-hidden="true" tabindex="-1"></a>        df_forwards<span class="sc">$</span>x <span class="ot">=</span> df_forwards<span class="sc">$</span>x <span class="sc">+</span> df_forwards<span class="sc">$</span>v_x</span>
+<span id="cb17-155"><a href="#cb17-155" aria-hidden="true" tabindex="-1"></a>        df_forwards<span class="sc">$</span>y <span class="ot">=</span> df_forwards<span class="sc">$</span>y <span class="sc">+</span> df_forwards<span class="sc">$</span>v_y</span>
+<span id="cb17-156"><a href="#cb17-156" aria-hidden="true" tabindex="-1"></a>        <span class="co"># append to points data</span></span>
+<span id="cb17-157"><a href="#cb17-157" aria-hidden="true" tabindex="-1"></a>        df_pts <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_forwards)</span>
+<span id="cb17-158"><a href="#cb17-158" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb17-159"><a href="#cb17-159" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-160"><a href="#cb17-160" aria-hidden="true" tabindex="-1"></a>    <span class="co"># remove points located outside of plot window</span></span>
+<span id="cb17-161"><a href="#cb17-161" aria-hidden="true" tabindex="-1"></a>    df_pts <span class="ot">=</span> df_pts[(df_pts<span class="sc">$</span>x <span class="sc">&gt;=</span> <span class="sc">-</span><span class="fl">1.2</span>) <span class="sc">&amp;</span> (df_pts<span class="sc">$</span>x <span class="sc">&lt;=</span> <span class="fl">1.2</span>),]</span>
+<span id="cb17-162"><a href="#cb17-162" aria-hidden="true" tabindex="-1"></a>    df_pts <span class="ot">=</span> df_pts[(df_pts<span class="sc">$</span>y <span class="sc">&gt;=</span> <span class="sc">-</span><span class="fl">1.2</span>) <span class="sc">&amp;</span> (df_pts<span class="sc">$</span>y <span class="sc">&lt;=</span> <span class="fl">1.2</span>),]</span>
+<span id="cb17-163"><a href="#cb17-163" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-164"><a href="#cb17-164" aria-hidden="true" tabindex="-1"></a>    <span class="co"># make the loop continuous</span></span>
+<span id="cb17-165"><a href="#cb17-165" aria-hidden="true" tabindex="-1"></a>    <span class="co"># take points from just after the start of the animation</span></span>
+<span id="cb17-166"><a href="#cb17-166" aria-hidden="true" tabindex="-1"></a>    <span class="co"># and use them to replace points towards the end</span></span>
+<span id="cb17-167"><a href="#cb17-167" aria-hidden="true" tabindex="-1"></a>    pts_start  <span class="ot">=</span> <span class="fu">unique</span>(df_pts<span class="sc">$</span>id[df_pts<span class="sc">$</span>t <span class="sc">==</span> <span class="dv">51</span>])</span>
+<span id="cb17-168"><a href="#cb17-168" aria-hidden="true" tabindex="-1"></a>    pts_remove <span class="ot">=</span> <span class="fu">unique</span>(df_pts<span class="sc">$</span>id[df_pts<span class="sc">$</span>t <span class="sc">&gt;=</span> <span class="dv">350</span>])</span>
+<span id="cb17-169"><a href="#cb17-169" aria-hidden="true" tabindex="-1"></a>    df_loop    <span class="ot">=</span> df_pts[df_pts<span class="sc">$</span>id <span class="sc">%in%</span> pts_start,]</span>
+<span id="cb17-170"><a href="#cb17-170" aria-hidden="true" tabindex="-1"></a>    df_loop<span class="sc">$</span>t  <span class="ot">=</span> df_loop<span class="sc">$</span>t <span class="sc">+</span> <span class="dv">299</span></span>
+<span id="cb17-171"><a href="#cb17-171" aria-hidden="true" tabindex="-1"></a>    df_loop<span class="sc">$</span>id <span class="ot">=</span> df_loop<span class="sc">$</span>id <span class="sc">+</span> n_obs</span>
+<span id="cb17-172"><a href="#cb17-172" aria-hidden="true" tabindex="-1"></a>    df_pts     <span class="ot">=</span> df_pts[<span class="sc">!</span>(df_pts<span class="sc">$</span>id <span class="sc">%in%</span> pts_remove),]</span>
+<span id="cb17-173"><a href="#cb17-173" aria-hidden="true" tabindex="-1"></a>    df_pts     <span class="ot">=</span> <span class="fu">rbind</span>(df_pts, df_loop)</span>
+<span id="cb17-174"><a href="#cb17-174" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-175"><a href="#cb17-175" aria-hidden="true" tabindex="-1"></a>    <span class="co"># limit data shown to the window that starts and ends</span></span>
+<span id="cb17-176"><a href="#cb17-176" aria-hidden="true" tabindex="-1"></a>    <span class="co"># with the copied points</span></span>
+<span id="cb17-177"><a href="#cb17-177" aria-hidden="true" tabindex="-1"></a>    df_plot <span class="ot">=</span> df_pts[(df_pts<span class="sc">$</span>t <span class="sc">&gt;=</span> <span class="dv">51</span>) <span class="sc">&amp;</span> (df_pts<span class="sc">$</span>t <span class="sc">&lt;=</span> <span class="dv">350</span>),]</span>
+<span id="cb17-178"><a href="#cb17-178" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-179"><a href="#cb17-179" aria-hidden="true" tabindex="-1"></a>    <span class="co"># animation</span></span>
+<span id="cb17-180"><a href="#cb17-180" aria-hidden="true" tabindex="-1"></a>    margin <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb17-181"><a href="#cb17-181" aria-hidden="true" tabindex="-1"></a>    p <span class="ot">=</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb17-182"><a href="#cb17-182" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_polygon</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y), <span class="at">data =</span> df_shape, <span class="at">fill =</span> colors4[<span class="dv">2</span>]) <span class="sc">+</span></span>
+<span id="cb17-183"><a href="#cb17-183" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">group =</span> id, <span class="at">color =</span> <span class="fu">as.factor</span>(contact)), <span class="at">data =</span> df_plot) <span class="sc">+</span></span>
+<span id="cb17-184"><a href="#cb17-184" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_color_manual</span>(<span class="at">values =</span> colors4[<span class="dv">3</span><span class="sc">:</span><span class="dv">4</span>]) <span class="sc">+</span></span>
+<span id="cb17-185"><a href="#cb17-185" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.2</span>, <span class="fl">1.2</span>)) <span class="sc">+</span></span>
+<span id="cb17-186"><a href="#cb17-186" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.2</span>, <span class="fl">1.2</span>)) <span class="sc">+</span></span>
+<span id="cb17-187"><a href="#cb17-187" aria-hidden="true" tabindex="-1"></a>        <span class="fu">theme</span>(</span>
+<span id="cb17-188"><a href="#cb17-188" aria-hidden="true" tabindex="-1"></a>            <span class="at">axis.title =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb17-189"><a href="#cb17-189" aria-hidden="true" tabindex="-1"></a>            <span class="at">axis.text =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb17-190"><a href="#cb17-190" aria-hidden="true" tabindex="-1"></a>            <span class="at">axis.ticks =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb17-191"><a href="#cb17-191" aria-hidden="true" tabindex="-1"></a>            <span class="at">axis.line =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb17-192"><a href="#cb17-192" aria-hidden="true" tabindex="-1"></a>            <span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb17-193"><a href="#cb17-193" aria-hidden="true" tabindex="-1"></a>            <span class="at">plot.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_rect</span>(<span class="at">fill =</span> colors4[<span class="dv">1</span>], <span class="at">color =</span> colors4[<span class="dv">1</span>]),</span>
+<span id="cb17-194"><a href="#cb17-194" aria-hidden="true" tabindex="-1"></a>            <span class="at">panel.border =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb17-195"><a href="#cb17-195" aria-hidden="true" tabindex="-1"></a>            <span class="at">panel.grid =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb17-196"><a href="#cb17-196" aria-hidden="true" tabindex="-1"></a>            <span class="at">plot.margin =</span> ggplot2<span class="sc">::</span><span class="fu">unit</span>(<span class="fu">rep</span>(margin, <span class="dv">4</span>), <span class="st">"lines"</span>),</span>
+<span id="cb17-197"><a href="#cb17-197" aria-hidden="true" tabindex="-1"></a>            <span class="at">strip.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb17-198"><a href="#cb17-198" aria-hidden="true" tabindex="-1"></a>            <span class="at">strip.text =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb17-199"><a href="#cb17-199" aria-hidden="true" tabindex="-1"></a>            <span class="at">panel.background =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>()</span>
+<span id="cb17-200"><a href="#cb17-200" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span></span>
+<span id="cb17-201"><a href="#cb17-201" aria-hidden="true" tabindex="-1"></a>        <span class="fu">transition_time</span>(t) <span class="sc">+</span></span>
+<span id="cb17-202"><a href="#cb17-202" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ease_aes</span>(<span class="st">"linear"</span>)</span>
+<span id="cb17-203"><a href="#cb17-203" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-204"><a href="#cb17-204" aria-hidden="true" tabindex="-1"></a>    <span class="fu">animate</span>(p, <span class="at">nframes =</span> <span class="dv">1500</span>, <span class="at">fps =</span> <span class="dv">30</span>, <span class="at">width =</span> <span class="dv">400</span>, <span class="at">height =</span> <span class="dv">400</span>, <span class="at">units =</span> <span class="st">"px"</span>)</span>
+<span id="cb17-205"><a href="#cb17-205" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>This was a fun creative exercise exploring a topic very different from the data analysis I normally use R for. Despite being about making art, it was still a very technical exercise and the concept I came up with used a lot of basic algebra and geometry concepts. Hopefully aspects of this will prove useful in future endeavors.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">draw_polygon_animation</span>(<span class="at">seed =</span> <span class="dv">2172</span>, <span class="at">color_palette =</span> my_color_palette, <span class="at">background =</span> <span class="st">"#000000"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="generative_art_files/figure-html/final-animation-1.gif" class="img-fluid"></p>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

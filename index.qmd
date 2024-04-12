@@ -1,11 +1,10 @@
 ---
-title: "nicholasburk.github.io"
+title: "Nicholas Burk"
+page-layout: full
+about: 
+  template: trestles
 ---
 
-This is a Quarto website.
+Hello! I'm Nicholas Burk. Welcome to my website.
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
-
-```{r}
-1 + 1
-```
+The [projects section](https://nicholasburk.github.io/projects.html) contains posts about some side projects I have worked on unrelated to my job. These are usually short term passion projects related to a topic of interest or volunteer work.

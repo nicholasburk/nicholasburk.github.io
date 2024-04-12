@@ -1,0 +1,8 @@
+---
+title: "Projects"
+listing:
+  contents: projects/**/*.qmd
+  type: default
+page-layout: full
+title-block-banner: false
+---

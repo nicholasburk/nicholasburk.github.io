@@ -1,0 +1,9 @@
+/*-- scss:rules --*/
+
+.quarto-listing a h3 {
+  color: $link-color;
+}
+
+.quarto-listing a h3:hover {
+  text-decoration: underline;
+}
