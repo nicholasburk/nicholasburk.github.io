@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="An exercise in understanding the mechanics of the risk parity portfolio by implementing the algorithm myself">
+
+<title>Nicholas Burk - Risk Parity Portfolio</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Nicholas Burk</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html" rel="" target="">
+ <span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../projects.html" rel="" target="">
+ <span class="menu-text">Projects</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About Me</span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introoverview" id="toc-introoverview" class="nav-link active" data-scroll-target="#introoverview">Intro/Overview</a></li>
+  <li><a href="#setting-up" id="toc-setting-up" class="nav-link" data-scroll-target="#setting-up">Setting Up</a>
+  <ul class="collapse">
+  <li><a href="#loading-libraries" id="toc-loading-libraries" class="nav-link" data-scroll-target="#loading-libraries">Loading Libraries</a></li>
+  <li><a href="#loading-data" id="toc-loading-data" class="nav-link" data-scroll-target="#loading-data">Loading Data</a></li>
+  </ul></li>
+  <li><a href="#benchmarks" id="toc-benchmarks" class="nav-link" data-scroll-target="#benchmarks">Benchmarks</a>
+  <ul class="collapse">
+  <li><a href="#equally-weighted-portfolio" id="toc-equally-weighted-portfolio" class="nav-link" data-scroll-target="#equally-weighted-portfolio">Equally Weighted Portfolio</a></li>
+  <li><a href="#minimum-risk-portfolio" id="toc-minimum-risk-portfolio" class="nav-link" data-scroll-target="#minimum-risk-portfolio">Minimum Risk Portfolio</a></li>
+  </ul></li>
+  <li><a href="#risk-parity-portfolio" id="toc-risk-parity-portfolio" class="nav-link" data-scroll-target="#risk-parity-portfolio">Risk Parity Portfolio</a>
+  <ul class="collapse">
+  <li><a href="#theory" id="toc-theory" class="nav-link" data-scroll-target="#theory">Theory</a></li>
+  <li><a href="#implementation" id="toc-implementation" class="nav-link" data-scroll-target="#implementation">Implementation</a></li>
+  </ul></li>
+  <li><a href="#performance" id="toc-performance" class="nav-link" data-scroll-target="#performance">Performance</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Risk Parity Portfolio</h1>
+</div>
+
+<div>
+  <div class="description">
+    An exercise in understanding the mechanics of the risk parity portfolio by implementing the algorithm myself
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="introoverview" class="level2">
+<h2 class="anchored" data-anchor-id="introoverview">Intro/Overview</h2>
+<p>One algorithm under the umbrella of portfolio optimization that sounded interesting to me is called the risk parity portfolio. All of the portfolio optimization methods are about picking a set of weights for the different assets in a portfolio to optimize some objective function. In the case of the risk parity portfolio, the weights are selected so that each asset in the portfolio contributes an equal amount of risk. Risk is measured in terms of standard deviation of returns.</p>
+</section>
+<section id="setting-up" class="level2">
+<h2 class="anchored" data-anchor-id="setting-up">Setting Up</h2>
+<section id="loading-libraries" class="level3">
+<h3 class="anchored" data-anchor-id="loading-libraries">Loading Libraries</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(quantmod) <span class="co"># to download stock data from Yahoo Finance</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr) <span class="co"># to transform data</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr) <span class="co"># to convert from wide to long data format</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2) <span class="co"># to draw charts</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="loading-data" class="level3">
+<h3 class="anchored" data-anchor-id="loading-data">Loading Data</h3>
+<p>For this example I will pick a few tickers with different risk profiles to show how the algorithm works. I will just use one year of data since this is mainly an exercise in understanding the algorithm, not trying to actually build a trading strategy and backtest over long periods.</p>
+<p>The quantmod package contains a function called getSymbols() which lets the user pick one or more stock symbols and specify a time period, and then it downloads the relevant data from Yahoo Finance.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># pick a few tickers and download the data from Yahoo Finance</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>symbols_vec <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"SPY"</span>,<span class="st">"TLT"</span>,<span class="st">"GLD"</span>,<span class="st">"AAPL"</span>,<span class="st">"NFLX"</span>,<span class="st">"NVDA"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">getSymbols</span>(symbols_vec, <span class="at">from =</span> <span class="st">"2023-01-01"</span>, <span class="at">to =</span> <span class="st">"2023-12-31"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># combine adjusted close prices into one dataset</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># a bit weird because quantmod likes to return each ticker</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># as a new object in the environment</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>df_returns <span class="ot">=</span> <span class="fu">data.frame</span>()</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(symbols_vec)){</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># keep only the adjusted returns data</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    cmd <span class="ot">=</span> <span class="fu">paste0</span>(symbols_vec[i], <span class="st">"="</span>, symbols_vec[i], <span class="st">"[,grepl('Adjusted',colnames("</span>, symbols_vec[i], <span class="st">"))]"</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">eval</span>(<span class="fu">parse</span>(<span class="at">text =</span> cmd))</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># combine into one data frame</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(i <span class="sc">==</span> <span class="dv">1</span>){</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        cmd <span class="ot">=</span> <span class="fu">paste0</span>(<span class="st">"df_returns = "</span>, symbols_vec[i])</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">eval</span>(<span class="fu">parse</span>(<span class="at">text =</span> cmd))</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    }<span class="cf">else</span>{</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        cmd <span class="ot">=</span> <span class="fu">paste0</span>(<span class="st">"df_returns = merge(df_returns, "</span>, symbols_vec[i], <span class="st">")"</span>)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">eval</span>(<span class="fu">parse</span>(<span class="at">text =</span> cmd))</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co"># clean up column names</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(df_returns) <span class="ot">=</span> <span class="fu">gsub</span>(<span class="st">".Adjusted"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(df_returns))</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co"># transform adjusted close prices to daily returns</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>df_returns[<span class="sc">-</span><span class="dv">1</span>,] <span class="ot">=</span> <span class="fu">apply</span>(df_returns, <span class="dv">2</span>, <span class="cf">function</span>(x){x[<span class="dv">2</span><span class="sc">:</span><span class="fu">length</span>(x)] <span class="sc">/</span> x[<span class="dv">1</span><span class="sc">:</span>(<span class="fu">length</span>(x)<span class="sc">-</span><span class="dv">1</span>)] <span class="sc">-</span> <span class="dv">1</span>})</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>df_returns <span class="ot">=</span> df_returns[<span class="sc">-</span><span class="dv">1</span>,]</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>df_returns <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">Date =</span> <span class="fu">index</span>(df_returns), df_returns)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here is how the data looks after this initial cleanup.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">head</span>(df_returns))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Date</th>
+<th style="text-align: right;">SPY</th>
+<th style="text-align: right;">TLT</th>
+<th style="text-align: right;">GLD</th>
+<th style="text-align: right;">AAPL</th>
+<th style="text-align: right;">NFLX</th>
+<th style="text-align: right;">NVDA</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2023-01-04</td>
+<td style="text-align: right;">0.0077202</td>
+<td style="text-align: right;">0.0136999</td>
+<td style="text-align: right;">0.0094119</td>
+<td style="text-align: right;">0.0103143</td>
+<td style="text-align: right;">0.0490252</td>
+<td style="text-align: right;">0.0303180</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2023-01-05</td>
+<td style="text-align: right;">-0.0114134</td>
+<td style="text-align: right;">0.0041811</td>
+<td style="text-align: right;">-0.0124515</td>
+<td style="text-align: right;">-0.0106046</td>
+<td style="text-align: right;">0.0009373</td>
+<td style="text-align: right;">-0.0328158</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2023-01-06</td>
+<td style="text-align: right;">0.0229321</td>
+<td style="text-align: right;">0.0183964</td>
+<td style="text-align: right;">0.0187075</td>
+<td style="text-align: right;">0.0367939</td>
+<td style="text-align: right;">0.0188892</td>
+<td style="text-align: right;">0.0416404</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2023-01-09</td>
+<td style="text-align: right;">-0.0005668</td>
+<td style="text-align: right;">0.0053241</td>
+<td style="text-align: right;">0.0022451</td>
+<td style="text-align: right;">0.0040890</td>
+<td style="text-align: right;">-0.0012042</td>
+<td style="text-align: right;">0.0517532</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2023-01-10</td>
+<td style="text-align: right;">0.0070129</td>
+<td style="text-align: right;">-0.0165499</td>
+<td style="text-align: right;">0.0036760</td>
+<td style="text-align: right;">0.0044563</td>
+<td style="text-align: right;">0.0392486</td>
+<td style="text-align: right;">0.0179805</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2023-01-11</td>
+<td style="text-align: right;">0.0126477</td>
+<td style="text-align: right;">0.0162516</td>
+<td style="text-align: right;">-0.0006868</td>
+<td style="text-align: right;">0.0211122</td>
+<td style="text-align: right;">-0.0008549</td>
+<td style="text-align: right;">0.0057829</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</section>
+<section id="benchmarks" class="level2">
+<h2 class="anchored" data-anchor-id="benchmarks">Benchmarks</h2>
+<p>It may be helpful to look at a couple of other portfolio allocation methods to get a sense of how this method compares with other options. I will pick a couple of simple examples to compare with.</p>
+<section id="equally-weighted-portfolio" class="level3">
+<h3 class="anchored" data-anchor-id="equally-weighted-portfolio">Equally Weighted Portfolio</h3>
+<p>This method allocates an equal amount of money to each asset in the portfolio. It is extremely simple, but that is part of what makes it a useful benchmark. The difference between this method and the risk parity portfolio is that the equal weights here mean equally balance-weighted, not equally risk-weighted. Putting an equal amount of money into treasuries vs tech stocks would likely mean that the money in tech stocks contributes much more risk to the portfolio compared with the money invested in treasuries. In other words, while the amount of money invested is diversified across assets, the risk is not necessarily as diversified since one asset class might represent the majority of the risk.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># weight vector for equal weight</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>w1 <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">ncol</span>(df_returns)<span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>w1 <span class="ot">=</span> w1<span class="sc">/</span><span class="fu">sum</span>(w1)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>w1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.1666667 0.1666667 0.1666667 0.1666667 0.1666667 0.1666667</code></pre>
+</div>
+</div>
+</section>
+<section id="minimum-risk-portfolio" class="level3">
+<h3 class="anchored" data-anchor-id="minimum-risk-portfolio">Minimum Risk Portfolio</h3>
+<p>This portfolio optimization problem can be defined as minimizing the total variance of the portfolio subject to the condition that the weights must add up to one.</p>
+<p><span class="math display">\[
+    Minimize \hspace{2.5em} \frac{1}{2} w^T \Sigma w \\
+    \text{subject to} \hspace{2.5em} 1^T w = 1
+\]</span></p>
+<p>This optimization problem can be solved using lagrange multipliers. Construct the langrangian as the combination of the objective function and the constraints, then the two partial derivatives can be set equal to zero and used to solve for the unknown quantities of interest.</p>
+<p><span class="math display">\[
+    L(x,\lambda) = f(x) - \lambda g(x) \\
+    \frac{dL}{dx} = 0 \hspace{2.5em} \frac{dL}{d \lambda} = 0
+\]</span> In the context of this problem this becomes:</p>
+<p><span class="math display">\[
+\begin{align}
+    L(w,\lambda) &amp;= \frac{1}{2} w^T \Sigma w - \lambda (1^T w - 1) \\
+    \frac{dL}{dw} &amp;= \Sigma w - \lambda 1^T = 0 \\
+    w &amp;= \lambda \Sigma^{-1} 1 \\
+    \\
+    \frac{dL}{d \lambda} &amp;= 1^T w - 1 = 0 \\
+    1^T w &amp;= 1
+\end{align}
+\]</span> Multiplying the first equation through by 1 on the left side lets us use the constraint from the second equation which removes <span class="math inline">\(w\)</span> and allows us to solve for <span class="math inline">\(\lambda\)</span>.</p>
+<p><span class="math display">\[
+\begin{align}
+    w &amp;= \lambda \Sigma^{-1} 1 \\
+    1^T w &amp;= \lambda 1^T \Sigma^{-1} 1 \\
+    1 &amp;= \lambda 1^T \Sigma^{-1} 1 \\
+    \lambda &amp;= \frac{1}{1^T \Sigma^{-1} 1}
+\end{align}
+\]</span> Plugging <span class="math inline">\(\lambda\)</span> back into the equation for <span class="math inline">\(w\)</span> solves for <span class="math inline">\(w\)</span>.</p>
+<p><span class="math display">\[
+\begin{align}
+    w &amp;= \lambda \Sigma^{-1} 1 \\
+    &amp;= \frac{\Sigma^{-1} 1}{1^T \Sigma^{-1} 1}
+\end{align}
+\]</span></p>
+<p>This is simple to implement, it just involves computing and then inverting the covariance matrix <span class="math inline">\(\Sigma\)</span> for the daily returns data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get inverse of covariance matrix of returns</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>cov_mat <span class="ot">=</span> <span class="fu">cov</span>(df_returns[,<span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>cov_mat_inv <span class="ot">=</span> <span class="fu">solve</span>(cov_mat)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># compute weights</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>vec1 <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">nrow</span>(cov_mat_inv))</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">=</span> vec1 <span class="sc">%*%</span> cov_mat_inv <span class="sc">%*%</span> vec1</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">=</span> <span class="fu">as.numeric</span>(<span class="dv">1</span><span class="sc">/</span>lambda)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>w2 <span class="ot">=</span> <span class="fu">as.vector</span>(lambda <span class="sc">*</span> cov_mat_inv <span class="sc">%*%</span> vec1)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>w2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1]  0.61758079  0.07622508  0.41066270 -0.02959958 -0.03462770 -0.04024129</code></pre>
+</div>
+</div>
+<p>One interesting thing to note here is that while the weights were constrained to sum to 1, they were not constrained to be non-negative. The negative weights here on the riskier assets mean that achieving the minimum variance portfolio requires taking short positions in those assets.</p>
+</section>
+</section>
+<section id="risk-parity-portfolio" class="level2">
+<h2 class="anchored" data-anchor-id="risk-parity-portfolio">Risk Parity Portfolio</h2>
+<p>This time the problem is not to minimize risk, it is to impose a constraint that each asset in the portfolio contributes equally to the total risk.</p>
+<section id="theory" class="level3">
+<h3 class="anchored" data-anchor-id="theory">Theory</h3>
+<p>The total variance of the portfolio was minimized in the objective function of the minimum variance portfolio. Standard deviation is just the square root of variance, so the total standard deviation of the portfolio is <span class="math inline">\(\sigma (w) = \sqrt{w^T \Sigma w}\)</span>. This can be decomposed by taking the partial derivative with respect to the weight of each individual asset in the portfolio.</p>
+<p><span class="math display">\[
+    \sigma(w) = \sum_{i=1}^N w_i \frac{d \sigma}{dw_i} = \sum_{i=1}^N \frac{w_i(\Sigma w)_i}{\sqrt{w^T \Sigma w}}
+\]</span></p>
+<p>In other words, asset <span class="math inline">\(i\)</span>’s contribution to the total portfolio standard deviation, or its Risk Contribution (RC) is:</p>
+<p><span class="math display">\[
+    RC_i = \frac{w_i(\Sigma w)_i}{\sqrt{w^T \Sigma w}}
+\]</span></p>
+<p>The constraint that needs to be imposed is to have each asset have the same risk contribution, which should be an equal amount of the total risk of the portfolio.</p>
+<p><span class="math display">\[
+    RC_i = \frac{1}{N} \sigma(w) = \frac{1}{N} \sqrt{w^T \Sigma w}
+\]</span> Dividing both sides by <span class="math inline">\(\sigma(w)\)</span> normalizes by total portfolio risk, giving us:</p>
+<p><span class="math display">\[
+\begin{align}
+    \frac{w_i(\Sigma w)_i}{\sqrt{w^T \Sigma w}} &amp;= \frac{1}{N} \sqrt{w^T \Sigma w} \\
+    \frac{w_i(\Sigma w)_i}{w^T \Sigma w} &amp;= \frac{1}{N}
+\end{align}
+\]</span></p>
+<p>Next comes a change of variables in two places. One is substituting <span class="math inline">\(b_i = \frac{1}{N}\)</span> which is a generalization and will allow us to specify something other than equal risk contributions if desired later. Another is <span class="math inline">\(x_i = \frac{w_i}{\sqrt{w^T \Sigma w}}\)</span>, or said another way, <span class="math inline">\(x\)</span> is just the weight vector <span class="math inline">\(w\)</span> normalized by total portfolio standard deviation. After this change of variables, the last equation now looks like this:</p>
+<p><span class="math display">\[
+\begin{align}
+    \frac{w_i(\Sigma w)_i}{w^T \Sigma w} &amp;= \frac{1}{N} \\
+    \frac{w_i}{\sqrt{w^T \Sigma w}} \Sigma \frac{w_i}{\sqrt{w^T \Sigma w}} &amp;= b_i \\
+    x_i (\Sigma x)_i &amp;= b_i \\
+    x_i (\Sigma x)_i - b_i &amp;= 0
+\end{align}
+\]</span></p>
+<p>This can be written out further to separate <span class="math inline">\(x_i\)</span> from other weights <span class="math inline">\(x_j\)</span> to yield a quadratic equation.</p>
+<p><span class="math display">\[
+\begin{align}
+    x_i (\Sigma x)_i - b_i &amp;= 0 \\
+    \sigma_{ii}^2 x_i^2 + x_i\sum_{i=/=j}\sigma_{ij}^2 x_j - b_i &amp;= 0
+\end{align}
+\]</span></p>
+<p>Then the solution <span class="math inline">\(x_i^*\)</span> comes from the quadratic formula <span class="math inline">\(x^* = \frac{-b + \sqrt{b^2 - 4ac}}{2a}\)</span></p>
+<p><span class="math display">\[
+    x_i^* = \frac{-\sum_{i=/=j}\sigma_{ij}^2 x_j + \sqrt{(\sum_{i=/=j}\sigma_{ij}^2 x_j)^2 + 4 \sigma_{ii}^2 b_i}}{2\sigma_{ii}^2}
+\]</span></p>
+<p>Since each weight <span class="math inline">\(x_i\)</span> is written in terms of the others <span class="math inline">\(x_j\)</span> we just iteratively update the weights until convergence is reached.</p>
+</section>
+<section id="implementation" class="level3">
+<h3 class="anchored" data-anchor-id="implementation">Implementation</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># write it as a function that takes a covariance matrix as input</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>rpp <span class="ot">&lt;-</span> <span class="cf">function</span>(cov_mat, <span class="at">b =</span> <span class="cn">NULL</span>, <span class="at">tolerance =</span> <span class="fl">0.00000001</span>, <span class="at">max_iter =</span> <span class="dv">100</span>){</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># initialize weights</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># as equal weights normalized by total portfolio risk</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">ncol</span>(cov_mat))</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> x<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">sum</span>(cov_mat))</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    sigma_x <span class="ot">=</span> cov_mat <span class="sc">%*%</span> x</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># use equal risk weights by default</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="fu">is.null</span>(b)){</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        b <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">ncol</span>(cov_mat))</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        b <span class="ot">=</span> b<span class="sc">/</span><span class="fu">sum</span>(b)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># update weights</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(n <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>max_iter){</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(cov_mat)){</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>            z <span class="ot">=</span> sigma_x[i] <span class="sc">-</span> cov_mat[i,i]<span class="sc">*</span>x[i]</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>            x_star <span class="ot">=</span> (<span class="sc">-</span>z <span class="sc">+</span> <span class="fu">sqrt</span>(z<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="dv">4</span><span class="sc">*</span>cov_mat[i,i]<span class="sc">*</span>b[i])) <span class="sc">/</span> (<span class="dv">2</span><span class="sc">*</span>cov_mat[i,i])</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>            x[i] <span class="ot">=</span> x_star</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>            sigma_x <span class="ot">=</span> cov_mat <span class="sc">%*%</span> x</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="co"># check for convergence, stop if converged</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span>(<span class="fu">max</span>(<span class="fu">abs</span>(x <span class="sc">*</span> <span class="fu">as.vector</span>(cov_mat <span class="sc">%*%</span> x) <span class="sc">-</span> b)) <span class="sc">&lt;</span> tolerance){</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(x<span class="sc">/</span><span class="fu">sum</span>(x))</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a><span class="co"># get RPP weights</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>w3 <span class="ot">=</span> <span class="fu">rpp</span>(cov_mat)</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>w3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.20723268 0.19614619 0.30177870 0.14234206 0.08513825 0.06736213</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># check that the weights result in equal risk contributions</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>w3 <span class="sc">*</span> <span class="fu">as.vector</span>(cov_mat <span class="sc">%*%</span> w3) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">as.numeric</span>(w3 <span class="sc">%*%</span> cov_mat <span class="sc">%*%</span> w3))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.001235473 0.001235473 0.001235473 0.001235473 0.001235473 0.001235473</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="performance" class="level2">
+<h2 class="anchored" data-anchor-id="performance">Performance</h2>
+<p>Now we can compare these three methods and see how they differ in terms of returns and how the weights change over time. For the purposes of this comparison I will assume that re-balancing happens monthly, and that at the start of each month the weights are calculated by looking backwards at the prior 3-month period.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># pull out month as a feature</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>df_returns<span class="sc">$</span>month <span class="ot">=</span> <span class="fu">as.integer</span>(<span class="fu">substr</span>(df_returns<span class="sc">$</span>Date, <span class="dv">6</span>, <span class="dv">7</span>))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># for each month get weights based on previous 3 months</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>df_backtest <span class="ot">=</span> <span class="fu">data.frame</span>()</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>df_w <span class="ot">=</span> <span class="fu">data.frame</span>()</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">4</span><span class="sc">:</span><span class="dv">12</span>){</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># previous 3 months of returns</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">=</span> df_returns[(df_returns<span class="sc">$</span>month <span class="sc">&gt;=</span> i<span class="dv">-3</span>) <span class="sc">&amp;</span> (df_returns<span class="sc">$</span>month <span class="sc">&lt;=</span> i<span class="dv">-1</span>),]</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># equal weights</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    w1 <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">ncol</span>(df)<span class="sc">-</span><span class="dv">2</span>)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    w1 <span class="ot">=</span> w1<span class="sc">/</span><span class="fu">sum</span>(w1)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># minimum variance weights</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    cov_mat <span class="ot">=</span> <span class="fu">cov</span>(df[,<span class="sc">!</span>(<span class="fu">colnames</span>(df) <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Date"</span>,<span class="st">"month"</span>))])</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    cov_mat_inv <span class="ot">=</span> <span class="fu">solve</span>(cov_mat)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    vec1 <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">nrow</span>(cov_mat_inv))</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    lambda <span class="ot">=</span> vec1 <span class="sc">%*%</span> cov_mat_inv <span class="sc">%*%</span> vec1</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    lambda <span class="ot">=</span> <span class="fu">as.numeric</span>(<span class="dv">1</span><span class="sc">/</span>lambda)</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    w2 <span class="ot">=</span> <span class="fu">as.vector</span>(lambda <span class="sc">*</span> cov_mat_inv <span class="sc">%*%</span> vec1)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># risk parity portfolio weights</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    w3 <span class="ot">=</span> <span class="fu">rpp</span>(cov_mat)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># returns for the new month</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">=</span> df_returns[df_returns<span class="sc">$</span>month <span class="sc">==</span> i,]</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    dt <span class="ot">=</span> df<span class="sc">$</span>Date</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">=</span> df[,<span class="sc">!</span>(<span class="fu">colnames</span>(df) <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Date"</span>,<span class="st">"month"</span>))]</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    r1 <span class="ot">=</span> <span class="fu">rowSums</span>(<span class="fu">sweep</span>(df, <span class="dv">2</span>, w1, <span class="at">FUN=</span><span class="st">"*"</span>))</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    r2 <span class="ot">=</span> <span class="fu">rowSums</span>(<span class="fu">sweep</span>(df, <span class="dv">2</span>, w2, <span class="at">FUN=</span><span class="st">"*"</span>))</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    r3 <span class="ot">=</span> <span class="fu">rowSums</span>(<span class="fu">sweep</span>(df, <span class="dv">2</span>, w3, <span class="at">FUN=</span><span class="st">"*"</span>))</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    rets <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">Date =</span> dt, <span class="at">w_eq =</span> r1, <span class="at">w_min_var =</span> r2, <span class="at">w_rpp =</span> r3)</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>    df_backtest <span class="ot">=</span> <span class="fu">rbind</span>(df_backtest, rets)</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>    <span class="co"># store weight vectors over time</span></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>    w_month <span class="ot">=</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>        <span class="at">Date =</span> <span class="fu">as.Date</span>(<span class="fu">paste0</span>(<span class="st">"2023-"</span>,<span class="fu">formatC</span>(i, <span class="at">width=</span><span class="dv">2</span>, <span class="at">format=</span><span class="st">"d"</span>, <span class="at">flag=</span><span class="st">"0"</span>),<span class="st">"-01"</span>)),</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>        <span class="at">type =</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="st">"eq"</span>, <span class="dv">6</span>), <span class="fu">rep</span>(<span class="st">"min_var"</span>, <span class="dv">6</span>), <span class="fu">rep</span>(<span class="st">"rpp"</span>, <span class="dv">6</span>)),</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>        <span class="at">asset =</span> <span class="fu">rep</span>(<span class="fu">colnames</span>(df), <span class="dv">3</span>),</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>        <span class="at">weight =</span> <span class="fu">c</span>(w1, w2, w3)</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>    df_w <span class="ot">=</span> <span class="fu">rbind</span>(df_w, w_month)</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a><span class="co"># plot of performance</span></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>df_backtest <span class="sc">%&gt;%</span></span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Date =</span> <span class="fu">as.Date</span>(Date)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">w_eq =</span> <span class="fu">cumprod</span>(<span class="dv">1</span> <span class="sc">+</span> w_eq) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">w_min_var =</span> <span class="fu">cumprod</span>(<span class="dv">1</span> <span class="sc">+</span> w_min_var) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">w_rpp =</span> <span class="fu">cumprod</span>(<span class="dv">1</span> <span class="sc">+</span> w_rpp) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="sc">!</span>Date, <span class="at">names_to =</span> <span class="st">"portfolio"</span>, <span class="at">values_to =</span> <span class="st">"cum_ret"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Date, <span class="at">y =</span> cum_ret, <span class="at">color =</span> portfolio)) <span class="sc">+</span></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Cumulative Returns"</span>) <span class="sc">+</span></span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="risk_parity_portfolio_files/figure-html/compare-performance-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot of weights over time for the 3 different methods</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>df_w <span class="sc">%&gt;%</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Date, <span class="at">y =</span> weight, <span class="at">fill =</span> asset)) <span class="sc">+</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>(<span class="at">position =</span> <span class="st">"stack"</span>, <span class="at">stat =</span> <span class="st">"identity"</span>) <span class="sc">+</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_grid</span>(type <span class="sc">~</span> .)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="risk_parity_portfolio_files/figure-html/compare-performance-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>The risk parity portfolio represents an interesting way to look at portfolio allocation problem, focusing on the constraints as the objective. I only scratched the surface of the implementation, as there are other conditions that could also be considered such as box constraints for the weights or adding other conditions to optimize for. The <a href="https://cran.r-project.org/web/packages/riskParityPortfolio/index.html">riskParityPortfolio</a> R package has excellent vignettes to explain the material for the interested reader.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
