@@ -348,13 +348,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="minimum-risk-portfolio">Minimum Risk Portfolio</h3>
 <p>This portfolio optimization problem can be defined as minimizing the total variance of the portfolio subject to the condition that the weights must add up to one.</p>
 <p><span class="math display">\[
-    Minimize \hspace{2.5em} \frac{1}{2} w^T \Sigma w \\
-    \text{subject to} \hspace{2.5em} 1^T w = 1
+\begin{align}
+    Minimize&amp; \hspace{2.5em} \frac{1}{2} w^T \Sigma w \\
+    \text{subject to}&amp; \hspace{2.5em} 1^T w = 1
+\end{align}
 \]</span></p>
 <p>This optimization problem can be solved using lagrange multipliers. Construct the langrangian as the combination of the objective function and the constraints, then the two partial derivatives can be set equal to zero and used to solve for the unknown quantities of interest.</p>
 <p><span class="math display">\[
+\begin{align}
     L(x,\lambda) = f(x) - \lambda g(x) \\
     \frac{dL}{dx} = 0 \hspace{2.5em} \frac{dL}{d \lambda} = 0
+\end{align}
 \]</span> In the context of this problem this becomes:</p>
 <p><span class="math display">\[
 \begin{align}
@@ -426,7 +430,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><span class="math display">\[
 \begin{align}
     \frac{w_i(\Sigma w)_i}{w^T \Sigma w} &amp;= \frac{1}{N} \\
-    \frac{w_i}{\sqrt{w^T \Sigma w}} \Sigma \frac{w_i}{\sqrt{w^T \Sigma w}} &amp;= b_i \\
+    \frac{w_i}{\sqrt{w^T \Sigma w}} \frac{(\Sigma w)_i}{\sqrt{w^T \Sigma w}} &amp;= b_i \\
     x_i (\Sigma x)_i &amp;= b_i \\
     x_i (\Sigma x)_i - b_i &amp;= 0
 \end{align}
@@ -442,7 +446,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><span class="math display">\[
     x_i^* = \frac{-\sum_{i=/=j}\sigma_{ij}^2 x_j + \sqrt{(\sum_{i=/=j}\sigma_{ij}^2 x_j)^2 + 4 \sigma_{ii}^2 b_i}}{2\sigma_{ii}^2}
 \]</span></p>
-<p>Since each weight <span class="math inline">\(x_i\)</span> is written in terms of the others <span class="math inline">\(x_j\)</span> we just iteratively update the weights until convergence is reached.</p>
+<p>Since each weight <span class="math inline">\(x_i\)</span> is written in terms of the others <span class="math inline">\(x_j\)</span> we iteratively update the weights until convergence is reached.</p>
 </section>
 <section id="implementation" class="level3">
 <h3 class="anchored" data-anchor-id="implementation">Implementation</h3>
@@ -491,7 +495,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="performance" class="level2">
 <h2 class="anchored" data-anchor-id="performance">Performance</h2>
-<p>Now we can compare these three methods and see how they differ in terms of returns and how the weights change over time. For the purposes of this comparison I will assume that re-balancing happens monthly, and that at the start of each month the weights are calculated by looking backwards at the prior 3-month period.</p>
+<p>Now we can compare these three methods and see how they differ in terms of returns and how the weights change over time. For simplicity I will assume that re-balancing happens daily with no transaction costs, and that the weights are calculated at the start of each month by looking backwards at the prior 3-month period.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># pull out month as a feature</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>df_returns<span class="sc">$</span>month <span class="ot">=</span> <span class="fu">as.integer</span>(<span class="fu">substr</span>(df_returns<span class="sc">$</span>Date, <span class="dv">6</span>, <span class="dv">7</span>))</span>
@@ -564,7 +568,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="conclusion" class="level2">
 <h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
-<p>The risk parity portfolio represents an interesting way to look at portfolio allocation problem, focusing on the constraints as the objective. I only scratched the surface of the implementation, as there are other conditions that could also be considered such as box constraints for the weights or adding other conditions to optimize for. The <a href="https://cran.r-project.org/web/packages/riskParityPortfolio/index.html">riskParityPortfolio</a> R package has excellent vignettes to explain the material for the interested reader.</p>
+<p>The risk parity portfolio represents an interesting way to look at the portfolio allocation problem, focusing on the constraints as the objective. I only scratched the surface of the implementation, as there are other conditions that could also be considered such as box constraints for the weights or adding other conditions to optimize for. The <a href="https://cran.r-project.org/web/packages/riskParityPortfolio/index.html">riskParityPortfolio</a> R package has excellent vignettes to explain the material for the interested reader.</p>
 
 
 </section>

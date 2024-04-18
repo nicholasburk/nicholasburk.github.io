@@ -102,15 +102,19 @@ w1
 This portfolio optimization problem can be defined as minimizing the total variance of the portfolio subject to the condition that the weights must add up to one.
 
 $$
-    Minimize \hspace{2.5em} \frac{1}{2} w^T \Sigma w \\
-    \text{subject to} \hspace{2.5em} 1^T w = 1 
+\begin{align}
+    Minimize& \hspace{2.5em} \frac{1}{2} w^T \Sigma w \\
+    \text{subject to}& \hspace{2.5em} 1^T w = 1
+\end{align}
 $$
 
 This optimization problem can be solved using lagrange multipliers. Construct the langrangian as the combination of the objective function and the constraints, then the two partial derivatives can be set equal to zero and used to solve for the unknown quantities of interest.
 
 $$
+\begin{align}
     L(x,\lambda) = f(x) - \lambda g(x) \\
     \frac{dL}{dx} = 0 \hspace{2.5em} \frac{dL}{d \lambda} = 0
+\end{align}
 $$
 In the context of this problem this becomes:
 
@@ -199,7 +203,7 @@ Next comes a change of variables in two places. One is substituting $b_i = \frac
 $$
 \begin{align}
     \frac{w_i(\Sigma w)_i}{w^T \Sigma w} &= \frac{1}{N} \\
-    \frac{w_i}{\sqrt{w^T \Sigma w}} \Sigma \frac{w_i}{\sqrt{w^T \Sigma w}} &= b_i \\
+    \frac{w_i}{\sqrt{w^T \Sigma w}} \frac{(\Sigma w)_i}{\sqrt{w^T \Sigma w}} &= b_i \\
     x_i (\Sigma x)_i &= b_i \\
     x_i (\Sigma x)_i - b_i &= 0
 \end{align}
@@ -220,7 +224,7 @@ $$
     x_i^* = \frac{-\sum_{i=/=j}\sigma_{ij}^2 x_j + \sqrt{(\sum_{i=/=j}\sigma_{ij}^2 x_j)^2 + 4 \sigma_{ii}^2 b_i}}{2\sigma_{ii}^2}
 $$
 
-Since each weight $x_i$ is written in terms of the others $x_j$ we just iteratively update the weights until convergence is reached.
+Since each weight $x_i$ is written in terms of the others $x_j$ we iteratively update the weights until convergence is reached.
 
 ### Implementation
 
@@ -265,7 +269,7 @@ w3 * as.vector(cov_mat %*% w3) / sqrt(as.numeric(w3 %*% cov_mat %*% w3))
 
 ## Performance
 
-Now we can compare these three methods and see how they differ in terms of returns and how the weights change over time. For the purposes of this comparison I will assume that re-balancing happens monthly, and that at the start of each month the weights are calculated by looking backwards at the prior 3-month period.
+Now we can compare these three methods and see how they differ in terms of returns and how the weights change over time. For simplicity I will assume that re-balancing happens daily with no transaction costs, and that the weights are calculated at the start of each month by looking backwards at the prior 3-month period.
 
 ```{r}
 #| label: compare-performance
@@ -336,4 +340,4 @@ df_w %>%
 
 ## Conclusion
 
-The risk parity portfolio represents an interesting way to look at portfolio allocation problem, focusing on the constraints as the objective. I only scratched the surface of the implementation, as there are other conditions that could also be considered such as box constraints for the weights or adding other conditions to optimize for. The [riskParityPortfolio](https://cran.r-project.org/web/packages/riskParityPortfolio/index.html) R package has excellent vignettes to explain the material for the interested reader.
+The risk parity portfolio represents an interesting way to look at the portfolio allocation problem, focusing on the constraints as the objective. I only scratched the surface of the implementation, as there are other conditions that could also be considered such as box constraints for the weights or adding other conditions to optimize for. The [riskParityPortfolio](https://cran.r-project.org/web/packages/riskParityPortfolio/index.html) R package has excellent vignettes to explain the material for the interested reader.
