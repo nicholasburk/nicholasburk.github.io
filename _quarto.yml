@@ -9,7 +9,6 @@ website:
       - href: index.qmd
         text: Home
       - projects.qmd
-      - about.qmd
 
 format:
   html:
