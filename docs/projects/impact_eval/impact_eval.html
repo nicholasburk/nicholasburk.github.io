@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="A general summary of some consulting work I did for the American Red Cross about estimating the effect of interventions">
+<meta name="description" content="A summary of some topics in the field of impact evaluation from my volunteer work with the American Red Cross">
 
 <title>Nicholas Burk - Impact Evaluation</title>
 <style>
@@ -155,8 +155,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#additional-considerations" id="toc-additional-considerations" class="nav-link" data-scroll-target="#additional-considerations">Additional Considerations</a>
   <ul class="collapse">
-  <li><a href="#confounding-factors" id="toc-confounding-factors" class="nav-link" data-scroll-target="#confounding-factors">Confounding Factors</a></li>
+  <li><a href="#covariate-adjustment" id="toc-covariate-adjustment" class="nav-link" data-scroll-target="#covariate-adjustment">Covariate Adjustment</a></li>
   <li><a href="#inverse-probability-treatment-weights" id="toc-inverse-probability-treatment-weights" class="nav-link" data-scroll-target="#inverse-probability-treatment-weights">Inverse Probability Treatment Weights</a></li>
+  <li><a href="#clustered-standard-errors" id="toc-clustered-standard-errors" class="nav-link" data-scroll-target="#clustered-standard-errors">Clustered Standard Errors</a></li>
   </ul></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
   </ul>
@@ -172,7 +173,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div>
   <div class="description">
-    A general summary of some consulting work I did for the American Red Cross about estimating the effect of interventions
+    A summary of some topics in the field of impact evaluation from my volunteer work with the American Red Cross
   </div>
 </div>
 
@@ -198,14 +199,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="loading-libraries" class="level3">
 <h3 class="anchored" data-anchor-id="loading-libraries">Loading Libraries</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr) <span class="co"># for data manipulation</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2) <span class="co"># to make plots</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lmtest) <span class="co"># to adjust model using clustered error covariance</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sandwich) <span class="co"># to compute clustered error covariance</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr) <span class="co"># for data manipulation</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr) <span class="co"># for data manipulation</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2) <span class="co"># to make plots</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
 <section id="generating-the-data" class="level2">
 <h2 class="anchored" data-anchor-id="generating-the-data">Generating the Data</h2>
-<p>I will generate my own fake data to use as an example for explaining some general ideas. Continuing with the flood example, let us say that we want to evaluate the effectiveness of an anticipatory action (intervention) that aimed to reduce healthcare expenditures by providing chlorine tablets immediately prior to a flood event to help reduce the incidence of water-borne disease. Based on the available budget, the treatment can only be provided to part of the affected population. Some time after the event, we survey the affected population to see what their actual healthcare expenditures were. This is the data that we use to evaluate the impact of our program.</p>
+<p>I will generate my own fake data to use as an example for explaining some general ideas. Continuing with the flood example, let us say that we want to evaluate the effectiveness of an anticipatory action (intervention) that aimed to reduce healthcare expenditures by providing chlorine tablets immediately before a flood event to help reduce the incidence of water-borne disease. Based on the available budget, the treatment can only be provided to part of the affected population. Some time after the event, we survey the affected population to see what their actual healthcare expenditures were. This is the data that we use to evaluate the impact of our program.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set seed for consistency</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
@@ -276,7 +280,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     E[Y|X = 1] - E[Y|X = 0]
 \]</span></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate simplest ATE by hand</span></span>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate simple ATE by hand</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>EY1 <span class="ot">=</span> <span class="fu">mean</span>(df<span class="sc">$</span>hc_cost[df<span class="sc">$</span>treatment <span class="sc">==</span> <span class="dv">1</span>])</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>EY0 <span class="ot">=</span> <span class="fu">mean</span>(df<span class="sc">$</span>hc_cost[df<span class="sc">$</span>treatment <span class="sc">==</span> <span class="dv">0</span>])</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>ATE <span class="ot">=</span> EY1 <span class="sc">-</span> EY0</span>
@@ -331,18 +335,18 @@ treatment -18.28405 -15.35352</code></pre>
 -15.35352 </code></pre>
 </div>
 </div>
-<p>The estimated coefficient on the treatment variable is about -17, which matches the manual calculation from earlier. In other words, the estimated ATE is that receiving the treatment reduces healthcare expenditures by an average of $17 per person. However, both of these estimates do not quite match the true effect of -20 which is the effect I used to generate the data, and the 95% confidence interval does not include the true effect either.</p>
+<p>The estimated coefficient on the treatment variable matches the manual calculation, as expected. The estimated ATE of about -17 means that receiving the treatment reduces healthcare expenditures by an average of $17 per person. However, this estimate does not quite match the true effect of -20 which is the effect I used to generate the data, and the 95% confidence interval does not include the true effect either. This is because of some additional complications I added while generating the data which will need to be addressed.</p>
 </section>
 </section>
 <section id="additional-considerations" class="level2">
 <h2 class="anchored" data-anchor-id="additional-considerations">Additional Considerations</h2>
 <p>The simple estimate for ATE above is useful to look at, but there are usually more factors that need to be considered in this type of analysis. These will differ substantially based on the situation. Here we will examine a few that are relevant to this example.</p>
-<section id="confounding-factors" class="level3">
-<h3 class="anchored" data-anchor-id="confounding-factors">Confounding Factors</h3>
+<section id="covariate-adjustment" class="level3">
+<h3 class="anchored" data-anchor-id="covariate-adjustment">Covariate Adjustment</h3>
 <p>A confounding factor is a variable that influences both the dependent variable and independent variable. To estimate the effect of X on Y, we must suppress the effects of confounding variables that influence both X and Y. We say that X and Y are confounded by some other variable Z whenever Z causally influences both X and Y.</p>
 <p><img src="confounding.png" class="img-fluid"></p>
 <p>In this example, there are variables such as household size and age (Z) which influence both the treatment effect (X) and healthcare expenditures (Y). They influence treatment because treatment was not assigned randomly; the assignment was weighted to prefer larger households and households with young and elderly members. They have a direct effect on healthcare costs based on how those costs were simulated in this example.</p>
-<p>We can account for these factors by explicitly estimating their effects in the model. Another way to think about this is that the simple version of the model suffers from omitted variable bias and the previous estimate of the ATE was incorporating effects which were actually attributable to these confounding factors.</p>
+<p>We can account for these factors by explicitly estimating their effects in the model. Conditioning our estimate on these additional variables is sometimes called covariate adjustment. Another way to think about this is that the simple version of the model suffers from omitted variable bias and the previous estimate of the ATE was incorporating effects which were actually attributable to these confounding factors.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># add indicator for young/elderly age group</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>age_young_old <span class="ot">=</span> <span class="fu">ifelse</span>((df<span class="sc">$</span>age <span class="sc">&lt;=</span> <span class="dv">12</span>) <span class="sc">|</span> (df<span class="sc">$</span>age <span class="sc">&gt;=</span> <span class="dv">50</span>), <span class="dv">1</span>, <span class="dv">0</span>)</span>
@@ -421,15 +425,160 @@ F-statistic:  1684 on 1 and 3872 DF,  p-value: &lt; 2.2e-16</code></pre>
 treatment -19.89851 -18.08407</code></pre>
 </div>
 </div>
-<p>This is an improvement over the un-adjusted estimate, but it doesn’t quite capture the true effect. One additional diagnostic we can examine here is the extent to which this re-weighting improved covariate balance. This is often done by comparing Standardized mean Differences (SMD) for the covariates of interest before and after this re-weighting. A common rule of thumb for achieving balance is a SMD threshold of 0.1, but this is somewhat arbitrary.</p>
+<p>This is an improvement over the un-adjusted estimate. One additional diagnostic we can examine here is the extent to which this re-weighting improved covariate balance. This is often done by comparing Standardized Mean Differences (SMD) for the covariates of interest before and after adjustment using these weights. A common rule of thumb for good balance is a SMD threshold of 0.1, although this rule is somewhat arbitrary.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate SMD for covariates of interest</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate SMD for covariates of interest</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>cov_bal_smd <span class="ot">=</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(treatment) <span class="sc">%&gt;%</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">hh_size_mean =</span> <span class="fu">mean</span>(hh_size),</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>              <span class="at">hh_size_wmean =</span> <span class="fu">weighted.mean</span>(hh_size, ipw),</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>              <span class="at">hh_size_sd =</span> <span class="fu">sd</span>(hh_size),</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">age_mean =</span> <span class="fu">mean</span>(age_young_old),</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">age_wmean =</span> <span class="fu">weighted.mean</span>(age_young_old, ipw),</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>              <span class="at">female_mean =</span> <span class="fu">mean</span>(female),</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">female_wmean =</span> <span class="fu">weighted.mean</span>(female, ipw)) <span class="sc">%&gt;%</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">hh_size_unadjusted =</span> <span class="fu">abs</span>(<span class="fu">diff</span>(hh_size_mean)) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">sum</span>(hh_size_sd<span class="sc">^</span><span class="dv">2</span>)<span class="sc">/</span><span class="dv">2</span>),</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>              <span class="at">hh_size_adjusted =</span> <span class="fu">abs</span>(<span class="fu">diff</span>(hh_size_wmean)) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">sum</span>(hh_size_sd<span class="sc">^</span><span class="dv">2</span>)<span class="sc">/</span><span class="dv">2</span>),</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>              <span class="at">age_unadjusted =</span> <span class="fu">abs</span>(<span class="fu">diff</span>(age_mean)),</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>              <span class="at">age_adjusted =</span> <span class="fu">abs</span>(<span class="fu">diff</span>(age_wmean)),</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>              <span class="at">female_unadjusted =</span> <span class="fu">abs</span>(<span class="fu">diff</span>(female_mean)),</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>              <span class="at">female_adjusted =</span> <span class="fu">abs</span>(<span class="fu">diff</span>(female_wmean))) <span class="sc">%&gt;%</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">values_to =</span> <span class="st">"SMD"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">adjusted =</span> <span class="fu">ifelse</span>(<span class="fu">grepl</span>(<span class="st">"unadjusted"</span>, name), <span class="st">"unadjusted"</span>, <span class="st">"adjusted"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">covariate =</span> <span class="fu">sub</span>(<span class="st">"_[^_]*$"</span>, <span class="st">""</span>, name))</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a><span class="co"># make love plot</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>cov_bal_smd <span class="sc">%&gt;%</span></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">adjusted =</span> <span class="fu">as.factor</span>(adjusted)) <span class="sc">%&gt;%</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> SMD, <span class="at">y =</span> covariate, <span class="at">color =</span> adjusted, <span class="at">shape =</span> adjusted)) <span class="sc">+</span></span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">0.1</span>, <span class="at">lty =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Absolute Standardized Mean Differences"</span>, <span class="at">y =</span> <span class="st">"Covariate"</span>) <span class="sc">+</span></span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.title =</span> <span class="fu">element_blank</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="impact_eval_files/figure-html/covariate-balance-1.png" class="img-fluid" width="672"></p>
 </div>
+</div>
+<p>We can see that covariate balance as measured by SMD improves after re-weighting the data with the inverse probability weights. The balance for household size is under the threshold of 0.1 after re-weighting, and the balance for the other covariates has also improved although they were already under the 0.1 threshold.</p>
+</section>
+<section id="clustered-standard-errors" class="level3">
+<h3 class="anchored" data-anchor-id="clustered-standard-errors">Clustered Standard Errors</h3>
+<p>There are certain situations where we might expect to observe clustering in our data. In this fake example, we have created clustering in the errors by adding an error component at the household level as well as the individual level. The rationale is that people in the same household will tend to have similar experiences. For instance, if one person from a household gets sick they are likely to pass that sickness to the other members of the household.</p>
+<p>When clustering exists in the data it means that the errors are not all independent since there is dependence within each cluster. This means the standard errors estimated by the model are too small and we need to adjust them to make sure our estimates are not overconfident. The adjustment will increase the standard errors, resulting in wider confidence intervals for our ATE estimate.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># first model using covariate adjustment</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>fit1 <span class="ot">=</span> <span class="fu">lm</span>(hc_cost <span class="sc">~</span> treatment <span class="sc">+</span> hh_size <span class="sc">+</span> age_young_old, <span class="at">data =</span> df)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>fit1_coef_cl <span class="ot">=</span> <span class="fu">coeftest</span>(fit1, <span class="at">vcov =</span> vcovCL, <span class="at">cluster =</span> <span class="sc">~</span>hh_id)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>fit1_coef_cl</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+t test of coefficients:
+
+               Estimate Std. Error t value  Pr(&gt;|t|)    
+(Intercept)    49.58349    0.48875 101.450 &lt; 2.2e-16 ***
+treatment     -19.71544    0.67000 -29.426 &lt; 2.2e-16 ***
+hh_size         5.05749    0.10010  50.526 &lt; 2.2e-16 ***
+age_young_old  20.12108    0.21921  91.788 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 95% confidence interval for ATE</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>df_clust_ci <span class="ot">=</span> <span class="fu">data.frame</span>(</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">"covariate adjustment"</span>,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustered_std_err =</span> <span class="st">"no"</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_95_lower =</span> <span class="fu">coef</span>(fit1)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.025</span>, <span class="at">df=</span>fit1<span class="sc">$</span>df.residual) <span class="sc">*</span> <span class="fu">summary</span>(fit1)<span class="sc">$</span>coefficients[<span class="dv">2</span>,<span class="dv">2</span>],</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_95_upper =</span> <span class="fu">coef</span>(fit1)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, <span class="at">df=</span>fit1<span class="sc">$</span>df.residual) <span class="sc">*</span> <span class="fu">summary</span>(fit1)<span class="sc">$</span>coefficients[<span class="dv">2</span>,<span class="dv">2</span>]</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>df_clust_ci <span class="ot">=</span> <span class="fu">rbind</span>(df_clust_ci, <span class="fu">data.frame</span>(</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">"covariate adjustment"</span>,</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustered_std_err =</span> <span class="st">"yes"</span>,</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_95_lower =</span> <span class="fu">coef</span>(fit1)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.025</span>, <span class="at">df=</span>fit1<span class="sc">$</span>df.residual) <span class="sc">*</span> fit1_coef_cl[<span class="dv">2</span>,<span class="dv">2</span>],</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_95_upper =</span> <span class="fu">coef</span>(fit1)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, <span class="at">df=</span>fit1<span class="sc">$</span>df.residual) <span class="sc">*</span> fit1_coef_cl[<span class="dv">2</span>,<span class="dv">2</span>]</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="co"># second model using inverse probability weights</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>fit2 <span class="ot">=</span> <span class="fu">lm</span>(hc_cost <span class="sc">~</span> treatment, <span class="at">data =</span> df, <span class="at">weights =</span> ipw)</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>fit2_coef_cl <span class="ot">=</span> <span class="fu">coeftest</span>(fit2, <span class="at">vcov =</span> vcovCL, <span class="at">cluster =</span> <span class="sc">~</span>hh_id)</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>fit2_coef_cl</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+t test of coefficients:
+
+             Estimate Std. Error t value  Pr(&gt;|t|)    
+(Intercept)  83.18950    0.41622 199.871 &lt; 2.2e-16 ***
+treatment   -18.99129    1.03750 -18.305 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 95% confidence interval for ATE</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>df_clust_ci <span class="ot">=</span> <span class="fu">rbind</span>(df_clust_ci, <span class="fu">data.frame</span>(</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">"inverse probability weights"</span>,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustered_std_err =</span> <span class="st">"no"</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_95_lower =</span> <span class="fu">coef</span>(fit2)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.025</span>, <span class="at">df=</span>fit2<span class="sc">$</span>df.residual) <span class="sc">*</span> <span class="fu">summary</span>(fit2)<span class="sc">$</span>coefficients[<span class="dv">2</span>,<span class="dv">2</span>],</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_95_upper =</span> <span class="fu">coef</span>(fit2)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, <span class="at">df=</span>fit2<span class="sc">$</span>df.residual) <span class="sc">*</span> <span class="fu">summary</span>(fit2)<span class="sc">$</span>coefficients[<span class="dv">2</span>,<span class="dv">2</span>]</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>df_clust_ci <span class="ot">=</span> <span class="fu">rbind</span>(df_clust_ci, <span class="fu">data.frame</span>(</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">"inverse probability weights"</span>,</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustered_std_err =</span> <span class="st">"yes"</span>,</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_95_lower =</span> <span class="fu">coef</span>(fit2)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.025</span>, <span class="at">df=</span>fit2<span class="sc">$</span>df.residual) <span class="sc">*</span> fit2_coef_cl[<span class="dv">2</span>,<span class="dv">2</span>],</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_95_upper =</span> <span class="fu">coef</span>(fit2)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, <span class="at">df=</span>fit2<span class="sc">$</span>df.residual) <span class="sc">*</span> fit2_coef_cl[<span class="dv">2</span>,<span class="dv">2</span>]</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="co"># display table</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(df_clust_ci) <span class="ot">=</span> <span class="cn">NULL</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(df_clust_ci)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<colgroup>
+<col style="width: 40%">
+<col style="width: 25%">
+<col style="width: 17%">
+<col style="width: 17%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">model</th>
+<th style="text-align: left;">clustered_std_err</th>
+<th style="text-align: right;">ci_95_lower</th>
+<th style="text-align: right;">ci_95_upper</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">covariate adjustment</td>
+<td style="text-align: left;">no</td>
+<td style="text-align: right;">-20.40712</td>
+<td style="text-align: right;">-19.02376</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">covariate adjustment</td>
+<td style="text-align: left;">yes</td>
+<td style="text-align: right;">-21.02903</td>
+<td style="text-align: right;">-18.40185</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">inverse probability weights</td>
+<td style="text-align: left;">no</td>
+<td style="text-align: right;">-19.89851</td>
+<td style="text-align: right;">-18.08407</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">inverse probability weights</td>
+<td style="text-align: left;">yes</td>
+<td style="text-align: right;">-21.02538</td>
+<td style="text-align: right;">-16.95719</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>As expected, accounting for the clustering in the errors increases the estimate for the standard error of ATE and consequently widens the bounds of the associated 95% confidence interval. It makes our estimate less precise, but it is a more accurate representation of what our confidence in our estimate should be.</p>
 </section>
 </section>
 <section id="conclusion" class="level2">
 <h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
-<p>To do</p>
+<p>We discussed estimating ATE to evaluate the impact of an intervention and covered a few examples of the problems that can arise in this type of analysis. Of course, there are a lot of other problems that can arise and techniques available to address them which I have not covered here. The World Bank provides a general description of more of the common techniques for impact evaluations in their publication <a href="https://www.worldbank.org/en/programs/sief-trust-fund/publication/impact-evaluation-in-practice">here</a> which the interested reader can download for free. Also, the use case I examined was focused on using observational data, but another approach would be to try to run the analysis concurrently with the intervention and have an RCT study design. The <a href="https://www.povertyactionlab.org/research-resources?view=toc">Abdul Latif Jameel Poverty Action Lab (J-PAL)</a> has a lot of good resources on the subject, as well as impact evaluations in general.</p>
 
 
 </section>

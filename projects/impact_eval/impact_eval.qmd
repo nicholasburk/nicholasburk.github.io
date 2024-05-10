@@ -1,16 +1,16 @@
 ---
 title: "Impact Evaluation"
-description: "A general summary of some consulting work I did for the American Red Cross about estimating the effect of interventions"
+description: "A summary of some topics in the field of impact evaluation from my volunteer work with the American Red Cross"
 title-block-banner-color: white
 image: "thumbnail.jpg"
-draft: true
+draft: false
 ---
 
 ## Intro/Overview
 
 One of the volunteer projects I worked on for the American Red Cross (ARC) was to help develop a cost benefit analysis for one of their programs. The International Federation of the Red Cross and Red Crescent Societies (IFRC) has a nice summary dashboard they maintain with high level information about some of their specific interventions: [https://go.ifrc.org/](https://go.ifrc.org/). 
 
-One of the programs that IFRC supports is early action or anticipatory action. Unlike a responsive program that would wait for a disaster to occur and then provide aid afterwards, an anticipatory action program aims to provide preventative aid before the disaster occurs. This can be effective for certain types of disasters where we can reasonably predict the event in advance. 
+One of the programs that IFRC supports is early action or anticipatory action. Unlike a responsive program that would wait for a disaster to occur and then provide aid afterwards, an anticipatory action program aims to provide preventative aid before the disaster occurs. This can be effective for certain types of disasters where we can reasonably predict the event in advance.
 
 For example, we might predict a coming flood using data about river levels, weather, upstream water flow, etc. If we wait until after the flood occurs, the flooding could spread water-borne diseases among the affected population and a relief effort might involve providing medicine or other forms of healthcare. Alternatively, an anticipatory action might be to provide chlorine tablets or other water treatment options before the flood occurs so that water-borne disease does not become prevalent after the flood. If effective, this type of preventative action can allow an organization to help more people with the available budget, since these types of preventative actions are often more cost efficient than treating problems after they become more serious.
 
@@ -23,13 +23,16 @@ For example, we might predict a coming flood using data about river levels, weat
 #| warning: false
 #| output: false
 
+library(lmtest) # to adjust model using clustered error covariance
+library(sandwich) # to compute clustered error covariance
 library(dplyr) # for data manipulation
+library(tidyr) # for data manipulation
 library(ggplot2) # to make plots
 ```
 
 ## Generating the Data
 
-I will generate my own fake data to use as an example for explaining some general ideas. Continuing with the flood example, let us say that we want to evaluate the effectiveness of an anticipatory action (intervention) that aimed to reduce healthcare expenditures by providing chlorine tablets immediately prior to a flood event to help reduce the incidence of water-borne disease. Based on the available budget, the treatment can only be provided to part of the affected population. Some time after the event, we survey the affected population to see what their actual healthcare expenditures were. This is the data that we use to evaluate the impact of our program.
+I will generate my own fake data to use as an example for explaining some general ideas. Continuing with the flood example, let us say that we want to evaluate the effectiveness of an anticipatory action (intervention) that aimed to reduce healthcare expenditures by providing chlorine tablets immediately before a flood event to help reduce the incidence of water-borne disease. Based on the available budget, the treatment can only be provided to part of the affected population. Some time after the event, we survey the affected population to see what their actual healthcare expenditures were. This is the data that we use to evaluate the impact of our program.
 
 ```{r}
 #| label: generate-example-data
@@ -112,7 +115,7 @@ $$
 ```{r}
 #| label: ATE-simple-manual
 
-# calculate simplest ATE by hand
+# calculate simple ATE by hand
 EY1 = mean(df$hc_cost[df$treatment == 1])
 EY0 = mean(df$hc_cost[df$treatment == 0])
 ATE = EY1 - EY0
@@ -138,13 +141,13 @@ coef(fit)[2] + qt(0.025, df=fit$df.residual) * summary(fit)$coefficients[2,2]
 coef(fit)[2] + qt(0.975, df=fit$df.residual) * summary(fit)$coefficients[2,2]
 ```
 
-The estimated coefficient on the treatment variable is about -17, which matches the manual calculation from earlier. In other words, the estimated ATE is that receiving the treatment reduces healthcare expenditures by an average of $17 per person. However, both of these estimates do not quite match the true effect of -20 which is the effect I used to generate the data, and the 95% confidence interval does not include the true effect either.
+The estimated coefficient on the treatment variable matches the manual calculation, as expected. The estimated ATE of about -17 means that receiving the treatment reduces healthcare expenditures by an average of $17 per person. However, this estimate does not quite match the true effect of -20 which is the effect I used to generate the data, and the 95% confidence interval does not include the true effect either. This is because of some additional complications I added while generating the data which will need to be addressed.
 
 ## Additional Considerations
 
 The simple estimate for ATE above is useful to look at, but there are usually more factors that need to be considered in this type of analysis. These will differ substantially based on the situation. Here we will examine a few that are relevant to this example.
 
-### Confounding Factors
+### Covariate Adjustment
 
 A confounding factor is a variable that influences both the dependent variable and independent variable. To estimate the effect of X on Y, we must suppress the effects of confounding variables that influence both X and Y. We say that X and Y are confounded by some other variable Z whenever Z causally influences both X and Y.
 
@@ -152,10 +155,10 @@ A confounding factor is a variable that influences both the dependent variable a
 
 In this example, there are variables such as household size and age (Z) which influence both the treatment effect (X) and healthcare expenditures (Y). They influence treatment because treatment was not assigned randomly; the assignment was weighted to prefer larger households and households with young and elderly members. They have a direct effect on healthcare costs based on how those costs were simulated in this example.
 
-We can account for these factors by explicitly estimating their effects in the model. Another way to think about this is that the simple version of the model suffers from omitted variable bias and the previous estimate of the ATE was incorporating effects which were actually attributable to these confounding factors.
+We can account for these factors by explicitly estimating their effects in the model. Conditioning our estimate on these additional variables is sometimes called covariate adjustment. Another way to think about this is that the simple version of the model suffers from omitted variable bias and the previous estimate of the ATE was incorporating effects which were actually attributable to these confounding factors.
 
 ```{r}
-#| label: ATE-confounding-regression
+#| label: ATE-covariate-adjustment
 
 # add indicator for young/elderly age group
 df$age_young_old = ifelse((df$age <= 12) | (df$age >= 50), 1, 0)
@@ -192,15 +195,98 @@ summary(fit)
 confint(fit, "treatment", level = 0.95)
 ```
 
-This is an improvement over the un-adjusted estimate, but it doesn't quite capture the true effect. One additional diagnostic we can examine here is the extent to which this re-weighting improved covariate balance. This is often done by comparing Standardized mean Differences (SMD) for the covariates of interest before and after this re-weighting. A common rule of thumb for achieving balance is a SMD threshold of 0.1, but this is somewhat arbitrary.
+This is an improvement over the un-adjusted estimate. One additional diagnostic we can examine here is the extent to which this re-weighting improved covariate balance. This is often done by comparing Standardized Mean Differences (SMD) for the covariates of interest before and after adjustment using these weights. A common rule of thumb for good balance is a SMD threshold of 0.1, although this rule is somewhat arbitrary.
 
 ```{r}
 #| label: covariate-balance
 
 # calculate SMD for covariates of interest
+cov_bal_smd = df %>%
+    group_by(treatment) %>%
+    summarise(hh_size_mean = mean(hh_size),
+              hh_size_wmean = weighted.mean(hh_size, ipw),
+              hh_size_sd = sd(hh_size),
+              age_mean = mean(age_young_old),
+              age_wmean = weighted.mean(age_young_old, ipw),
+              female_mean = mean(female),
+              female_wmean = weighted.mean(female, ipw)) %>%
+    summarise(hh_size_unadjusted = abs(diff(hh_size_mean)) / sqrt(sum(hh_size_sd^2)/2),
+              hh_size_adjusted = abs(diff(hh_size_wmean)) / sqrt(sum(hh_size_sd^2)/2),
+              age_unadjusted = abs(diff(age_mean)),
+              age_adjusted = abs(diff(age_wmean)),
+              female_unadjusted = abs(diff(female_mean)),
+              female_adjusted = abs(diff(female_wmean))) %>%
+    pivot_longer(everything(), values_to = "SMD") %>%
+    mutate(adjusted = ifelse(grepl("unadjusted", name), "unadjusted", "adjusted")) %>%
+    mutate(covariate = sub("_[^_]*$", "", name))
 
+# make love plot
+cov_bal_smd %>%
+    mutate(adjusted = as.factor(adjusted)) %>%
+    ggplot(aes(x = SMD, y = covariate, color = adjusted, shape = adjusted)) +
+    geom_vline(xintercept = 0) +
+    geom_vline(xintercept = 0.1, lty = "dashed") +
+    geom_point(size = 3) +
+    labs(x = "Absolute Standardized Mean Differences", y = "Covariate") +
+    theme(legend.title = element_blank())
 ```
+
+We can see that covariate balance as measured by SMD improves after re-weighting the data with the inverse probability weights. The balance for household size is under the threshold of 0.1 after re-weighting, and the balance for the other covariates has also improved although they were already under the 0.1 threshold.
+
+### Clustered Standard Errors
+
+There are certain situations where we might expect to observe clustering in our data. In this fake example, we have created clustering in the errors by adding an error component at the household level as well as the individual level. The rationale is that people in the same household will tend to have similar experiences. For instance, if one person from a household gets sick they are likely to pass that sickness to the other members of the household.
+
+When clustering exists in the data it means that the errors are not all independent since there is dependence within each cluster. This means the standard errors estimated by the model are too small and we need to adjust them to make sure our estimates are not overconfident. The adjustment will increase the standard errors, resulting in wider confidence intervals for our ATE estimate.
+
+```{r}
+#| label: clustered-standard-errors
+
+# first model using covariate adjustment
+fit1 = lm(hc_cost ~ treatment + hh_size + age_young_old, data = df)
+fit1_coef_cl = coeftest(fit1, vcov = vcovCL, cluster = ~hh_id)
+fit1_coef_cl
+
+# 95% confidence interval for ATE
+df_clust_ci = data.frame(
+    model = "covariate adjustment",
+    clustered_std_err = "no",
+    ci_95_lower = coef(fit1)[2] + qt(0.025, df=fit1$df.residual) * summary(fit1)$coefficients[2,2],
+    ci_95_upper = coef(fit1)[2] + qt(0.975, df=fit1$df.residual) * summary(fit1)$coefficients[2,2]
+)
+df_clust_ci = rbind(df_clust_ci, data.frame(
+    model = "covariate adjustment",
+    clustered_std_err = "yes",
+    ci_95_lower = coef(fit1)[2] + qt(0.025, df=fit1$df.residual) * fit1_coef_cl[2,2],
+    ci_95_upper = coef(fit1)[2] + qt(0.975, df=fit1$df.residual) * fit1_coef_cl[2,2]
+))
+
+# second model using inverse probability weights
+fit2 = lm(hc_cost ~ treatment, data = df, weights = ipw)
+fit2_coef_cl = coeftest(fit2, vcov = vcovCL, cluster = ~hh_id)
+fit2_coef_cl
+
+# 95% confidence interval for ATE
+df_clust_ci = rbind(df_clust_ci, data.frame(
+    model = "inverse probability weights",
+    clustered_std_err = "no",
+    ci_95_lower = coef(fit2)[2] + qt(0.025, df=fit2$df.residual) * summary(fit2)$coefficients[2,2],
+    ci_95_upper = coef(fit2)[2] + qt(0.975, df=fit2$df.residual) * summary(fit2)$coefficients[2,2]
+))
+df_clust_ci = rbind(df_clust_ci, data.frame(
+    model = "inverse probability weights",
+    clustered_std_err = "yes",
+    ci_95_lower = coef(fit2)[2] + qt(0.025, df=fit2$df.residual) * fit2_coef_cl[2,2],
+    ci_95_upper = coef(fit2)[2] + qt(0.975, df=fit2$df.residual) * fit2_coef_cl[2,2]
+))
+
+# display table
+rownames(df_clust_ci) = NULL
+knitr::kable(df_clust_ci)
+```
+
+As expected, accounting for the clustering in the errors increases the estimate for the standard error of ATE and consequently widens the bounds of the associated 95% confidence interval. It makes our estimate less precise, but it is a more accurate representation of what our confidence in our estimate should be.
 
 ## Conclusion
 
-To do
+We discussed estimating ATE to evaluate the impact of an intervention and covered a few examples of the problems that can arise in this type of analysis. Of course, there are a lot of other problems that can arise and techniques available to address them which I have not covered here. The World Bank provides a general description of more of the common techniques for impact evaluations in their publication [here](https://www.worldbank.org/en/programs/sief-trust-fund/publication/impact-evaluation-in-practice) which the interested reader can download for free. Also, the use case I examined was focused on using observational data, but another approach would be to try to run the analysis concurrently with the intervention and have an RCT study design. The [Abdul Latif Jameel Poverty Action Lab (J-PAL)](https://www.povertyactionlab.org/research-resources?view=toc) has a lot of good resources on the subject, as well as impact evaluations in general. 
