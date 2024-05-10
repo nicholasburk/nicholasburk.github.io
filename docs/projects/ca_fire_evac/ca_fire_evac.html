@@ -563,18 +563,18 @@ glm(formula = y ~ . - exposure + offset(log(exposure)), family = poisson(link = 
 
 Coefficients:
             Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept) -2.29769    0.12939 -17.758   &lt;2e-16 ***
-age_25_44   -0.05200    0.16561  -0.314    0.754    
-age_45_64   -0.01567    0.11359  -0.138    0.890    
-age_65_inf   0.03865    0.13749   0.281    0.779    
+(Intercept)  -2.1469     0.1275 -16.844   &lt;2e-16 ***
+age_25_44    -0.1838     0.1637  -1.123    0.261    
+age_45_64    -0.1070     0.1116  -0.959    0.338    
+age_65_inf   -0.1886     0.1356  -1.391    0.164    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for poisson family taken to be 1)
 
-    Null deviance: 188.26  on 247  degrees of freedom
-Residual deviance: 181.78  on 244  degrees of freedom
-AIC: 2018.7
+    Null deviance: 195.42  on 247  degrees of freedom
+Residual deviance: 192.31  on 244  degrees of freedom
+AIC: 2031.1
 
 Number of Fisher Scoring iterations: 3</code></pre>
 </div>
@@ -590,7 +590,7 @@ Number of Fisher Scoring iterations: 3</code></pre>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># under-estimate shelter demand?</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(model_data<span class="sc">$</span>y <span class="sc">-</span> <span class="fu">predict</span>(fit, <span class="at">type =</span> <span class="st">"response"</span>) <span class="sc">&gt;</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.5</code></pre>
+<pre><code>[1] 0.5282258</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># bootstrap setup</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
@@ -610,7 +610,7 @@ Number of Fisher Scoring iterations: 3</code></pre>
 <span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    y_pred_boot <span class="ot">=</span> <span class="fu">predict</span>(fit_boot, <span class="at">newdata =</span> model_data, <span class="at">type =</span> <span class="st">"response"</span>)</span>
 <span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># now need to account for residual variance</span></span>
 <span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># given that the data is assumed to be poisson distributed</span></span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># the prediction is the expects value or lambda</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># the prediction is the expected value or lambda</span></span>
 <span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># so we can just sample from a poisson distribution with that lambda</span></span>
 <span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    boot_results[,i] <span class="ot">=</span> <span class="fu">rpois</span>(<span class="fu">nrow</span>(model_data), <span class="at">lambda =</span> y_pred_boot)</span>
 <span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>}</span>
@@ -624,7 +624,7 @@ Number of Fisher Scoring iterations: 3</code></pre>
 <span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="co"># under-estimate shelter demand?</span></span>
 <span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(model_data<span class="sc">$</span>y <span class="sc">-</span> upper_bound <span class="sc">&gt;</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.02016129</code></pre>
+<pre><code>[1] 0.01612903</code></pre>
 </div>
 </div>
 </section>

@@ -286,8 +286,8 @@ for(i in 2:nrow(df_alerts)){
 
 This combined data shows how the area covered by the evacuation order overlaps with the defined census block groups. This data needs to be aggregated at the level of evacuation orders so that one evacuation order has one set of corresponding variables. Here are a couple of simple options.
 
-1. Weight the census data by the percentage of the area that overlaps with the evacuation order area. If there is more overlap, more of the data from that census block group will be used. This sounds logical, but it assumes that the population of individuals is uniformly distributed throughout that block group, which does not have to be true. 
-2. Give 100% weight to all census block groups that intersect with the evacuation order area. This ensures no individuals are incorrectly excluded if the population of a block group happens to be concentrated in a small area within that block group. However, it may lead to overestimating the relevant population for the evacuation order.
+1.  Weight the census data by the percentage of the area that overlaps with the evacuation order area. If there is more overlap, more of the data from that census block group will be used. This sounds logical, but it assumes that the population of individuals is uniformly distributed throughout that block group, which does not have to be true.
+2.  Give 100% weight to all census block groups that intersect with the evacuation order area. This ensures no individuals are incorrectly excluded if the population of a block group happens to be concentrated in a small area within that block group. However, it may lead to overestimating the relevant population for the evacuation order.
 
 Since the right choice is not immediately obvious, I will just group the data both ways and figure out which way is preferable at a later stage.
 
@@ -351,7 +351,7 @@ This also skips several other complications that are likely to arise with the ac
 
 ### A Simple Model
 
-My first instinct when thinking about this problem is to try a Poisson regression. Since the number of people seeking shelter is count data, the Poisson distribution is convenient for modeling it because it will handle cases where the count is zero if that occurs (no one showed up at the shelter) and will enforce non-negativity. 
+My first instinct when thinking about this problem is to try a Poisson regression. Since the number of people seeking shelter is count data, the Poisson distribution is convenient for modeling it because it will handle cases where the count is zero if that occurs (no one showed up at the shelter) and will enforce non-negativity.
 
 It may be useful to think about this problem in the context of fractions, as in "what fraction of the exposed population will seek shelter?" This is also something easily incorporated within the Poisson regression framework.
 
@@ -359,7 +359,8 @@ The basic Poisson regression:
 
 $$
     log(E(Y|x)) = Bx
-$$
+$$ 
+
 Poisson regression modeling counts as a fraction of exposed population:
 
 $$
@@ -424,7 +425,7 @@ for(i in 1:n_bootstraps){
     y_pred_boot = predict(fit_boot, newdata = model_data, type = "response")
     # now need to account for residual variance
     # given that the data is assumed to be poisson distributed
-    # the prediction is the expects value or lambda
+    # the prediction is the expected value or lambda
     # so we can just sample from a poisson distribution with that lambda
     boot_results[,i] = rpois(nrow(model_data), lambda = y_pred_boot)
 }
