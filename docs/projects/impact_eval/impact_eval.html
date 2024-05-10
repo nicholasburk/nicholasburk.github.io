@@ -223,7 +223,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">hh_id =</span> i, <span class="co"># household ID</span></span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">hh_size =</span> hh_size[i], <span class="co"># household size</span></span>
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">age =</span> <span class="fu">sample.int</span>(<span class="dv">65</span>, hh_size[i], <span class="at">replace=</span><span class="cn">TRUE</span>), <span class="co"># age from 1-65</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">gender =</span> <span class="fu">ifelse</span>(<span class="fu">runif</span>(hh_size[i]) <span class="sc">&lt;</span> <span class="fl">0.5</span>, <span class="st">"M"</span>, <span class="st">"F"</span>) <span class="co"># gender (M/F)</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">female =</span> <span class="fu">ifelse</span>(<span class="fu">runif</span>(hh_size[i]) <span class="sc">&lt;</span> <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
 <span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">=</span> <span class="fu">rbind</span>(df, hh)</span>
 <span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>}</span>
@@ -235,7 +235,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>treatment_select <span class="ot">=</span> df <span class="sc">%&gt;%</span> </span>
 <span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(hh_id, hh_size) <span class="sc">%&gt;%</span></span>
 <span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">pct_young_old =</span> <span class="fu">mean</span>((age <span class="sc">&lt;=</span> <span class="dv">12</span>) <span class="sc">|</span> (age <span class="sc">&gt;=</span> <span class="dv">50</span>)),</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>              <span class="at">pct_F =</span> <span class="fu">mean</span>(gender <span class="sc">==</span> <span class="st">"F"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>              <span class="at">pct_F =</span> <span class="fu">mean</span>(female)) <span class="sc">%&gt;%</span></span>
 <span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">treatment_prob =</span> hh_size <span class="sc">+</span> <span class="dv">2</span><span class="sc">*</span>pct_young_old <span class="sc">+</span> <span class="dv">2</span><span class="sc">*</span>pct_F)</span>
 <span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>hh_id_treatment <span class="ot">=</span> <span class="fu">sample</span>(treatment_select<span class="sc">$</span>hh_id, <span class="dv">100</span>, </span>
@@ -282,7 +282,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>ATE <span class="ot">=</span> EY1 <span class="sc">-</span> EY0</span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>ATE</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -17.22038</code></pre>
+<pre><code>[1] -16.81879</code></pre>
 </div>
 </div>
 </section>
@@ -299,36 +299,36 @@ Call:
 lm(formula = hc_cost ~ treatment, data = df)
 
 Residuals:
-   Min     1Q Median     3Q    Max 
--46.78 -10.53  -0.29  10.82  46.37 
+    Min      1Q  Median      3Q     Max 
+-46.734 -10.373  -0.274  10.843  46.409 
 
 Coefficients:
             Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)  82.8829     0.2564  323.23   &lt;2e-16 ***
-treatment   -17.2204     0.7449  -23.12   &lt;2e-16 ***
+(Intercept)  82.8386     0.2561   323.4   &lt;2e-16 ***
+treatment   -16.8188     0.7474   -22.5   &lt;2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Residual standard error: 14.98 on 3872 degrees of freedom
-Multiple R-squared:  0.1213,    Adjusted R-squared:  0.121 
-F-statistic: 534.4 on 1 and 3872 DF,  p-value: &lt; 2.2e-16</code></pre>
+Multiple R-squared:  0.1157,    Adjusted R-squared:  0.1154 
+F-statistic: 506.4 on 1 and 3872 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 95% confidence interval for ATE</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(fit, <span class="st">"treatment"</span>, <span class="at">level =</span> <span class="fl">0.95</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>              2.5 %    97.5 %
-treatment -18.68089 -15.75986</code></pre>
+treatment -18.28405 -15.35352</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># same thing using the standard errors directly</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">coef</span>(fit)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.025</span>, <span class="at">df=</span>fit<span class="sc">$</span>df.residual) <span class="sc">*</span> <span class="fu">summary</span>(fit)<span class="sc">$</span>coefficients[<span class="dv">2</span>,<span class="dv">2</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>treatment 
--18.68089 </code></pre>
+-18.28405 </code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">coef</span>(fit)[<span class="dv">2</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, <span class="at">df=</span>fit<span class="sc">$</span>df.residual) <span class="sc">*</span> <span class="fu">summary</span>(fit)<span class="sc">$</span>coefficients[<span class="dv">2</span>,<span class="dv">2</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>treatment 
--15.75986 </code></pre>
+-15.35352 </code></pre>
 </div>
 </div>
 <p>The estimated coefficient on the treatment variable is about -17, which matches the manual calculation from earlier. In other words, the estimated ATE is that receiving the treatment reduces healthcare expenditures by an average of $17 per person. However, both of these estimates do not quite match the true effect of -20 which is the effect I used to generate the data, and the 95% confidence interval does not include the true effect either.</p>
@@ -357,26 +357,26 @@ lm(formula = hc_cost ~ treatment + hh_size + age_young_old, data = df)
 
 Residuals:
      Min       1Q   Median       3Q      Max 
--23.5984  -4.6508   0.0531   4.9627  24.1286 
+-23.5940  -4.6384   0.0414   4.9515  24.1408 
 
 Coefficients:
                Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)    49.58583    0.35099  141.27   &lt;2e-16 ***
-treatment     -19.78987    0.35141  -56.32   &lt;2e-16 ***
-hh_size         5.05850    0.06416   78.84   &lt;2e-16 ***
-age_young_old  20.12385    0.22849   88.07   &lt;2e-16 ***
+(Intercept)    49.58349    0.35093  141.29   &lt;2e-16 ***
+treatment     -19.71544    0.35279  -55.88   &lt;2e-16 ***
+hh_size         5.05749    0.06416   78.83   &lt;2e-16 ***
+age_young_old  20.12108    0.22854   88.04   &lt;2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Residual standard error: 7.047 on 3870 degrees of freedom
-Multiple R-squared:  0.8058,    Adjusted R-squared:  0.8056 
-F-statistic:  5352 on 3 and 3870 DF,  p-value: &lt; 2.2e-16</code></pre>
+Residual standard error: 7.046 on 3870 degrees of freedom
+Multiple R-squared:  0.8043,    Adjusted R-squared:  0.8042 
+F-statistic:  5303 on 3 and 3870 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 95% confidence interval for ATE</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(fit, <span class="st">"treatment"</span>, <span class="at">level =</span> <span class="fl">0.95</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>              2.5 %   97.5 %
-treatment -20.47883 -19.1009</code></pre>
+<pre><code>              2.5 %    97.5 %
+treatment -20.40712 -19.02376</code></pre>
 </div>
 </div>
 <p>After adjusting for these confounding factors, our ATE estimate is much closer to the true value and the 95% confidence interval includes the true value.</p>
@@ -384,6 +384,47 @@ treatment -20.47883 -19.1009</code></pre>
 <section id="inverse-probability-treatment-weights" class="level3">
 <h3 class="anchored" data-anchor-id="inverse-probability-treatment-weights">Inverse Probability Treatment Weights</h3>
 <p>Another method for addressing this concern around confounding is through the use of propensity scores, or inverse probability treatment weights. This is a popular method for observational studies. Unlike a randomized controlled trial (RCT) where an experiment is designed in advance to have treatment and control groups balanced across other covariates of interest, an observational study has no control over the treatment assignment and will often have treatment and control groups which are not balanced across other covariates. This technique is essentially re-weighting the observational data to make it look more it came from a balanced RCT design, which is important for estimating ATE since the calculation assumes we are comparing similar individuals.</p>
+<p>This method starts by building a model to predict a propensity score, which is the probability that the treatment was assigned to an individual. Observations are then re-weighted by dividing by this probability in order to achieve better balance.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate propensity score</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>fit_ps <span class="ot">=</span> <span class="fu">glm</span>(treatment <span class="sc">~</span> hh_size <span class="sc">+</span> age_young_old <span class="sc">+</span> female, <span class="at">data =</span> df, <span class="at">family =</span> <span class="fu">binomial</span>())</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>ehat <span class="ot">=</span> <span class="fu">predict</span>(fit_ps, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>ipw <span class="ot">=</span> df<span class="sc">$</span>treatment<span class="sc">/</span>ehat <span class="sc">+</span> (<span class="dv">1</span><span class="sc">-</span>df<span class="sc">$</span>treatment)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>ehat)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate ATE using weighted linear model</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">=</span> <span class="fu">lm</span>(hc_cost <span class="sc">~</span> treatment, <span class="at">data =</span> df, <span class="at">weights =</span> ipw)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = hc_cost ~ treatment, data = df, weights = ipw)
+
+Weighted Residuals:
+     Min       1Q   Median       3Q      Max 
+-128.314  -12.129   -0.438   12.748   85.704 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)  83.1895     0.3267  254.60   &lt;2e-16 ***
+treatment   -18.9913     0.4627  -41.04   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 20.34 on 3872 degrees of freedom
+Multiple R-squared:  0.3032,    Adjusted R-squared:  0.303 
+F-statistic:  1684 on 1 and 3872 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 95% confidence interval for ATE</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(fit, <span class="st">"treatment"</span>, <span class="at">level =</span> <span class="fl">0.95</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              2.5 %    97.5 %
+treatment -19.89851 -18.08407</code></pre>
+</div>
+</div>
+<p>This is an improvement over the un-adjusted estimate, but it doesn’t quite capture the true effect. One additional diagnostic we can examine here is the extent to which this re-weighting improved covariate balance. This is often done by comparing Standardized mean Differences (SMD) for the covariates of interest before and after this re-weighting. A common rule of thumb for achieving balance is a SMD threshold of 0.1, but this is somewhat arbitrary.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate SMD for covariates of interest</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 </section>
 <section id="conclusion" class="level2">
