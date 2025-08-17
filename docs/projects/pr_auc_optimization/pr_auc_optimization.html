@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Estimating a logistic regression model using a surrogate for the area under the precision-recall curve (PR-AUC) as the loss function">
+
+<title>Nicholas Burk - PR-AUC Optimization</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Nicholas Burk</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html" rel="" target="">
+ <span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../projects.html" rel="" target="">
+ <span class="menu-text">Projects</span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introoverview" id="toc-introoverview" class="nav-link active" data-scroll-target="#introoverview">Intro/Overview</a></li>
+  <li><a href="#setting-up" id="toc-setting-up" class="nav-link" data-scroll-target="#setting-up">Setting Up</a>
+  <ul class="collapse">
+  <li><a href="#loading-libraries" id="toc-loading-libraries" class="nav-link" data-scroll-target="#loading-libraries">Loading Libraries</a></li>
+  <li><a href="#loading-data" id="toc-loading-data" class="nav-link" data-scroll-target="#loading-data">Loading Data</a></li>
+  <li><a href="#utility-functions" id="toc-utility-functions" class="nav-link" data-scroll-target="#utility-functions">Utility Functions</a></li>
+  </ul></li>
+  <li><a href="#smooth-average-precision" id="toc-smooth-average-precision" class="nav-link" data-scroll-target="#smooth-average-precision">Smooth Average Precision</a>
+  <ul class="collapse">
+  <li><a href="#gradient-calculation" id="toc-gradient-calculation" class="nav-link" data-scroll-target="#gradient-calculation">Gradient Calculation</a></li>
+  <li><a href="#sigmoid-for-smoothing" id="toc-sigmoid-for-smoothing" class="nav-link" data-scroll-target="#sigmoid-for-smoothing">Sigmoid for Smoothing</a></li>
+  <li><a href="#gradient-ascent" id="toc-gradient-ascent" class="nav-link" data-scroll-target="#gradient-ascent">Gradient Ascent</a></li>
+  </ul></li>
+  <li><a href="#testing-performance" id="toc-testing-performance" class="nav-link" data-scroll-target="#testing-performance">Testing Performance</a>
+  <ul class="collapse">
+  <li><a href="#data-processing" id="toc-data-processing" class="nav-link" data-scroll-target="#data-processing">Data Processing</a></li>
+  <li><a href="#hyperparameter-tuning" id="toc-hyperparameter-tuning" class="nav-link" data-scroll-target="#hyperparameter-tuning">Hyperparameter Tuning</a></li>
+  <li><a href="#test-set-performance" id="toc-test-set-performance" class="nav-link" data-scroll-target="#test-set-performance">Test Set Performance</a></li>
+  </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">PR-AUC Optimization</h1>
+</div>
+
+<div>
+  <div class="description">
+    Estimating a logistic regression model using a surrogate for the area under the precision-recall curve (PR-AUC) as the loss function
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="introoverview" class="level2">
+<h2 class="anchored" data-anchor-id="introoverview">Intro/Overview</h2>
+<p>In binary classification tasks, the area under the precision-recall curve (PR-AUC) is a popular metric for use cases that deal with imbalanced data. For example, when trying to predict rare events such as credit defaults, hazard occurrences, correct top search results, etc.</p>
+<p>A common approach is to estimate a model using logistic regression and then choose from a few candidate models based on their performance on metrics such as PR-AUC. While there is nothing stopping the user from doing this, logistic regression optimizes its coefficients based on minimizing the logistic loss function, not maximizing PR-AUC. If the objective of the problem is to maximize PR-AUC, optimizing the estimation approach to maximize this quantity directly should provide better results than optimizing a completely different metric.</p>
+<p>The trouble with doing this for PR-AUC (and ROC-AUC too for that matter) is that these metrics are defined using indicator functions <span class="math inline">\(1[s_i \gt s_j]\)</span> which are not smooth and therefore not differentiable. One way around this is to use smooth surrogates to approximate these functions and make them differentiable. We will explore how this can be done as an example.</p>
+</section>
+<section id="setting-up" class="level2">
+<h2 class="anchored" data-anchor-id="setting-up">Setting Up</h2>
+<section id="loading-libraries" class="level3">
+<h3 class="anchored" data-anchor-id="loading-libraries">Loading Libraries</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mlbench) <span class="co"># contains the breast cancer dataset for use as an example</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(PRROC) <span class="co"># to calculate the area under the precision-recall curve</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pROC) <span class="co"># to calculate the area under the receiver operating characteristic curve</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2) <span class="co"># to draw charts</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="loading-data" class="level3">
+<h3 class="anchored" data-anchor-id="loading-data">Loading Data</h3>
+<p>For this example we can use any data as long as we have a binary target variable. We will use the breast cancer dataset, which originates from the Breast Cancer Wisconsin (Diagnostic) Data Set, a widely used benchmark in machine learning for medical diagnostics. We want to build a classifier to predict whether the tumor type is benign or malignant.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the breast cancer dataset from the mlbench package</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"BreastCancer"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove rows with missing values</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>BC_clean <span class="ot">&lt;-</span> <span class="fu">na.omit</span>(BreastCancer)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert ordered factors to character, then to numeric to preserve their order</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># since they are being fed to model.matrix later</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>idx_col <span class="ot">&lt;-</span> <span class="fu">colnames</span>(BC_clean) <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Cl.thickness"</span>, <span class="st">"Cell.size"</span>, <span class="st">"Cell.shape"</span>, <span class="st">"Marg.adhesion"</span>, <span class="st">"Epith.c.size"</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>BC_clean[, idx_col] <span class="ot">&lt;-</span> <span class="fu">apply</span>(BC_clean[, idx_col], <span class="dv">2</span>, <span class="cf">function</span>(x){<span class="fu">as.numeric</span>(<span class="fu">as.character</span>(x))})</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>y  <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(BC_clean<span class="sc">$</span>Class <span class="sc">==</span> <span class="st">"malignant"</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>X0 <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(Class <span class="sc">~</span> . <span class="sc">-</span><span class="dv">1</span> <span class="sc">-</span>Id, <span class="at">data =</span> BC_clean)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>X  <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">Intercept =</span> <span class="dv">1</span>, X0)      <span class="co"># add intercept</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>n  <span class="ot">&lt;-</span> <span class="fu">nrow</span>(X)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(<span class="fu">unique</span>(y)) <span class="sc">&lt;</span> <span class="dv">2</span>) <span class="fu">stop</span>(<span class="st">"Need both classes present."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="utility-functions" class="level3">
+<h3 class="anchored" data-anchor-id="utility-functions">Utility Functions</h3>
+<p>Defining functions for the sigmoid (to use in our smooth surrogate), calculations for PR-AUC and ROC-AUC, as well as to help with stratified sampling.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sigmoid <span class="ot">&lt;-</span> <span class="cf">function</span>(z) {<span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>z))}</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># PR-AUC helper (higher score = more positive)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>pr_auc <span class="ot">&lt;-</span> <span class="cf">function</span>(scores, y) {</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  pos <span class="ot">&lt;-</span> scores[y <span class="sc">==</span> <span class="dv">1</span>]</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  neg <span class="ot">&lt;-</span> scores[y <span class="sc">==</span> <span class="dv">0</span>]</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pr.curve</span>(<span class="at">scores.class0 =</span> pos, <span class="at">scores.class1 =</span> neg, <span class="at">curve =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>auc.integral</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>roc_auc <span class="ot">&lt;-</span> <span class="cf">function</span>(scores, y) {</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.numeric</span>(pROC<span class="sc">::</span><span class="fu">auc</span>(pROC<span class="sc">::</span><span class="fu">roc</span>(<span class="at">response =</span> y, <span class="at">predictor =</span> scores, <span class="at">quiet =</span> <span class="cn">TRUE</span>)))</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co"># borrowed this from createDataPartition.R in the caret package</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># modified to remove dependency on 'dlply' function from plyr package</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>createDataPartition <span class="ot">&lt;-</span> <span class="cf">function</span> (y, <span class="at">times =</span> <span class="dv">1</span>, <span class="at">p =</span> <span class="fl">0.5</span>, <span class="at">list =</span> <span class="cn">TRUE</span>, <span class="at">groups =</span> <span class="fu">min</span>(<span class="dv">5</span>, <span class="fu">length</span>(y))){</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="at">mode =</span> <span class="st">"list"</span>, times)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">length</span>(y) <span class="sc">&lt;</span> <span class="dv">2</span>) <span class="fu">stop</span>(<span class="st">"y must have at least 2 data points"</span>)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(groups <span class="sc">&lt;</span> <span class="dv">2</span>) groups <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">is.numeric</span>(y)) {</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">&lt;-</span> <span class="fu">cut</span>(y,</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>              <span class="fu">unique</span>(<span class="fu">quantile</span>(y, <span class="at">probs =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">length.out =</span> groups))),</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>              <span class="at">include.lowest =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    xtab <span class="ot">&lt;-</span> <span class="fu">table</span>(y)</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="fu">any</span>(xtab <span class="sc">==</span> <span class="dv">0</span>)) {</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>      <span class="fu">warning</span>(<span class="fu">paste</span>(<span class="st">"Some classes have no records ("</span>,</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">paste</span>(<span class="fu">names</span>(xtab)[xtab  <span class="sc">==</span> <span class="dv">0</span>], <span class="at">sep =</span> <span class="st">""</span>, <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>                      <span class="st">") and these will be ignored"</span>))</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>      y <span class="ot">&lt;-</span> <span class="fu">factor</span>(<span class="fu">as.character</span>(y))</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="fu">any</span>(xtab <span class="sc">==</span> <span class="dv">1</span>)) {</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>      <span class="fu">warning</span>(<span class="fu">paste</span>(<span class="st">"Some classes have a single record ("</span>,</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">paste</span>(<span class="fu">names</span>(xtab)[xtab  <span class="sc">==</span> <span class="dv">1</span>], <span class="at">sep =</span> <span class="st">""</span>, <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>                      <span class="st">") and these will be selected for the sample"</span>))</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>  subsample <span class="ot">&lt;-</span> <span class="cf">function</span>(dat, p) {</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="fu">nrow</span>(dat) <span class="sc">==</span> <span class="dv">1</span>) {</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>      out <span class="ot">&lt;-</span> dat<span class="sc">$</span>index</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>      num <span class="ot">&lt;-</span> <span class="fu">ceiling</span>(<span class="fu">nrow</span>(dat) <span class="sc">*</span> p)</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>      out <span class="ot">&lt;-</span> <span class="fu">sample</span>(dat<span class="sc">$</span>index, <span class="at">size =</span> num)</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>    out</span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>  prettySeq <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> <span class="fu">as.character</span>(x)</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">seq</span>(<span class="at">along =</span> x)) {</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">nchar</span>(x[i]) <span class="sc">==</span> <span class="dv">1</span>) {</span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>        x[i] <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="st">"Rep"</span>, x[i], <span class="at">sep =</span> <span class="st">""</span>)</span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>      } <span class="cf">else</span> {</span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>        x[i] <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="st">"Rep"</span>, x[i], <span class="at">sep =</span> <span class="st">""</span>)</span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a>    x</span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>times) {</span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>    data_frame <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y =</span> y, <span class="at">index =</span> <span class="fu">seq</span>(<span class="at">along.with =</span> y))</span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Split the data frame by the 'y' column</span></span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>    split_data <span class="ot">&lt;-</span> <span class="fu">split</span>(data_frame, data_frame<span class="sc">$</span>y)</span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Apply the subsample function to each split using lapply</span></span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a>    tmp <span class="ot">&lt;-</span> <span class="fu">lapply</span>(split_data, subsample, <span class="at">p =</span> p)</span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>    tmp <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">as.vector</span>(<span class="fu">unlist</span>(tmp)))</span>
+<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>    out[[j]] <span class="ot">&lt;-</span> tmp</span>
+<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>list) {</span>
+<span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a>    out <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">unlist</span>(out), <span class="at">ncol =</span> times)</span>
+<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a>    <span class="fu">colnames</span>(out) <span class="ot">&lt;-</span> <span class="fu">prettySeq</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(out))</span>
+<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a>    <span class="fu">names</span>(out) <span class="ot">&lt;-</span> <span class="fu">prettySeq</span>(out)</span>
+<span id="cb3-82"><a href="#cb3-82" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-83"><a href="#cb3-83" aria-hidden="true" tabindex="-1"></a>  out</span>
+<span id="cb3-84"><a href="#cb3-84" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="smooth-average-precision" class="level2">
+<h2 class="anchored" data-anchor-id="smooth-average-precision">Smooth Average Precision</h2>
+<p>We want to optimize PR-AUC, which is the area under the precision-recall curve. PR-AUC is defined as follows:</p>
+<p><span class="math display">\[
+\text{PR-AUC} = \int_0^1 \text{Precision}(r) dr
+\]</span></p>
+<p>where <span class="math inline">\(r\)</span> is recall.</p>
+<p>This is an expectation over all recall levels, i.e.&nbsp;it measures how many positives are captured at varying thresholds relative to false positives.</p>
+<p>Given finite data, Average Precision (AP) is defined as:</p>
+<p><span class="math display">\[
+\text{AP} = \frac{1}{n_+} \sum_{k=1}^{n_+} \text{Precision}(k)
+\]</span></p>
+<p>where <span class="math inline">\(n_+\)</span> is the number of positive observations.</p>
+<p>The sum runs over the ranked list, and at each position <span class="math inline">\(k\)</span>, you evaluate the precision at the point where a positive is encountered. Intuitively, AP averages the precision achieved each time a new positive is recalled.</p>
+<p>PR-AUC integrates precision over recall, i.e.&nbsp;over all possible “fractions of positives recalled.” AP computes precision at discrete recall increments of <span class="math inline">\(\frac{1}{n_+}\)</span> so AP is basically a Riemann sum estimator of PR-AUC with grid spacing of <span class="math inline">\(\frac{1}{n_+}\)</span>.</p>
+<p><span class="math display">\[
+\text{PR-AUC} \approx \frac{1}{n_+} \sum_{k=1}^{n_+} \text{Precision}(\frac{k}{n_+}) = \text{AP}
+\]</span></p>
+<section id="gradient-calculation" class="level3">
+<h3 class="anchored" data-anchor-id="gradient-calculation">Gradient Calculation</h3>
+<p>Our objective function we want to maximize is AP, so we need to find the gradient by taking the derivative with respect to the model parameters. Our model takes the form of a logistic regression, so the model scores <span class="math inline">\(s_i\)</span> are <span class="math inline">\(x_i^TB\)</span>.</p>
+<p>Let:</p>
+<p><span class="math display">\[
+\begin{aligned}
+C_{ij} &amp;= \sigma(\frac{s_j - s_i}{\tau}) \\
+r_i &amp;= 1 + \sum_j C_{ij} \\
+r_i^+ &amp;= 1 + \sum_{j:y_j=1} C_{ij} \\
+prec_i &amp;= \frac{r_i^+}{r_i} \\
+AP &amp;= \frac{1}{n^+} \sum_{i:y_i=1} prec_i
+\end{aligned}
+\]</span></p>
+<p>We need to apply the chain rule a few times here, but the way we wrote out the terms separately above helps make that easier to see. We will take the derivative with respect to the model score for an example data point, since it’s easier to think about the pairwise comparisons that way, and the model parameters are straightforward after that. One helpful first step is to remember that the derivative of the sigmoid function is well known: <span class="math inline">\(\sigma'(x) = \sigma(x)(1 - \sigma(x))\)</span>. I’ll spell out the derivation here anyway.</p>
+<p>Since <span class="math inline">\(\sigma(x) = \frac{1}{1 + e^{-x}}\)</span>, by the quotient rule:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\frac{d\sigma}{dx} &amp;= \frac{(0)(1 + e^{-x}) - (1)(-e^{-x})}{(1 + e^{-x})^2} \\
+&amp;= \frac{e^{-x}}{(1 + e^{-x})^2} \\
+&amp;= \frac{1}{(1 + e^{-x})} \frac{e^{-x}}{(1 + e^{-x})} \\
+&amp;= \sigma(x)(1 - \sigma(x))
+\end{aligned}
+\]</span></p>
+<p>By this logic, we will define:</p>
+<p><span class="math display">\[
+G_{ij} = C_{ij}(1 - C_{ij}) / \tau
+\]</span></p>
+<p>which is basically just the derivative of the pairwise comparison term <span class="math inline">\(C_{ij}\)</span> with respect to the model score. With that additional definition, we can write the derivatives more simply as follows:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\frac{dAP}{ds_k} &amp;= \frac{1}{n^+} \sum_{i:y_i=1} \frac{dprec_i}{ds_k} \\
+\frac{dprec_i}{ds_k} &amp;= \frac{r_i \frac{dr_i^+}{ds_k} - r_i^+ \frac{dr_i}{ds_k} }{r_i^2} \\
+\frac{dr_i}{ds_k} &amp;=
+    \begin{cases}
+    -\sum_j G_{ij}, &amp; k=i \\
+    G_{ik}, &amp; k \ne i
+    \end{cases} \\
+\frac{dr_i^+}{ds_k} &amp;=
+    \begin{cases}
+    -\sum_{j:y_j=1} G_{ij}, &amp; k=i \\
+    G_{ik}1[y_k=1], &amp; k \ne i
+    \end{cases} \\
+\end{aligned}
+\]</span></p>
+<p>Finally, remember that <span class="math inline">\(s_i = x_i^TB\)</span> so <span class="math inline">\(\frac{ds_k}{dB} = x_k\)</span> and so <span class="math inline">\(\frac{dAP}{dB} = \frac{dAP}{ds_k} \frac{ds_k}{dB} = \frac{dAP}{ds_k}x_k\)</span>.</p>
+<p>That all gets plugged together into the formula for calculating the gradient below.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SmoothAP:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#  C_ij = sigma((s_j - s_i)/tau), r_i  = 1 + sum_j C_ij</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#  r^+_i = 1 + sum_{j:y_j=1} C_ij, precision_i = r^+_i / r_i</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">#  SmoothAP = (1/P) * sum_{i:y_i=1} precision_i</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>smoothap_loss_grad <span class="ot">&lt;-</span> <span class="cf">function</span>(X, y, beta, <span class="at">tau =</span> <span class="fl">0.05</span>, <span class="at">lambda =</span> <span class="fl">0.0</span>, <span class="at">reg_intercept =</span> <span class="cn">FALSE</span>) {</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">nrow</span>(X)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(X <span class="sc">%*%</span> beta)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  pos_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(y <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  P <span class="ot">&lt;-</span> <span class="fu">length</span>(pos_idx)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  Sdiff <span class="ot">&lt;-</span> <span class="fu">outer</span>(s, s, <span class="cf">function</span>(si, sj) (sj <span class="sc">-</span> si) <span class="sc">/</span> tau)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(Sdiff) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  C  <span class="ot">&lt;-</span> <span class="fu">sigmoid</span>(Sdiff)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  G  <span class="ot">&lt;-</span> C <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> C) <span class="sc">/</span> tau</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(G) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  r  <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">+</span> <span class="fu">rowSums</span>(C)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  rp <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">+</span> <span class="fu">rowSums</span>(C[ , y <span class="sc">==</span> <span class="dv">1</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>])</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  prec <span class="ot">&lt;-</span> rp <span class="sc">/</span> r</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  smoothAP <span class="ot">&lt;-</span> <span class="fu">mean</span>(prec[pos_idx])</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  pos_mask <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(y <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>  dL_ds <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> pos_idx) {</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    Gi <span class="ot">&lt;-</span> G[i, ]</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    sumGi_all <span class="ot">&lt;-</span> <span class="fu">sum</span>(Gi)</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    sumGi_pos <span class="ot">&lt;-</span> <span class="fu">sum</span>(Gi <span class="sc">*</span> pos_mask)</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    base_vec  <span class="ot">&lt;-</span> ( r[i] <span class="sc">*</span> (Gi <span class="sc">*</span> pos_mask) <span class="sc">-</span> rp[i] <span class="sc">*</span> Gi ) <span class="sc">/</span> (r[i]<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    diag_term <span class="ot">&lt;-</span> ( r[i] <span class="sc">*</span> (<span class="sc">-</span>sumGi_pos)   <span class="sc">-</span> rp[i] <span class="sc">*</span> (<span class="sc">-</span>sumGi_all) ) <span class="sc">/</span> (r[i]<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    contrib   <span class="ot">&lt;-</span> base_vec</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    contrib[i] <span class="ot">&lt;-</span> contrib[i] <span class="sc">+</span> diag_term</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    dL_ds     <span class="ot">&lt;-</span> dL_ds <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">/</span> P) <span class="sc">*</span> contrib</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>  grad_beta <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">crossprod</span>(X, dL_ds))</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>  penalty <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (lambda <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (reg_intercept) {</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>      grad_beta <span class="ot">&lt;-</span> grad_beta <span class="sc">-</span> lambda <span class="sc">*</span> beta</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>      penalty   <span class="ot">&lt;-</span> (lambda <span class="sc">/</span> <span class="dv">2</span>) <span class="sc">*</span> <span class="fu">sum</span>(beta<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>      mask <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">length</span>(beta) <span class="sc">-</span> <span class="dv">1</span>))</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>      grad_beta <span class="ot">&lt;-</span> grad_beta <span class="sc">-</span> lambda <span class="sc">*</span> (beta <span class="sc">*</span> mask)</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>      penalty   <span class="ot">&lt;-</span> (lambda <span class="sc">/</span> <span class="dv">2</span>) <span class="sc">*</span> <span class="fu">sum</span>(beta[<span class="sc">-</span><span class="dv">1</span>]<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">loss =</span> smoothAP <span class="sc">-</span> penalty, <span class="at">grad =</span> grad_beta, <span class="at">smoothAP =</span> smoothAP)</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="sigmoid-for-smoothing" class="level3">
+<h3 class="anchored" data-anchor-id="sigmoid-for-smoothing">Sigmoid for Smoothing</h3>
+<p>In the gradient calculation above, we used the term <span class="math inline">\(C_{ij} = \sigma(\frac{s_j - s_i}{\tau})\)</span> which is where the smooth approximation was being made. This replaces what would otherwise have been a non-differentiable indicator function, also known as the Heaviside step function <span class="math inline">\(1[s_j \gt s_i]\)</span>. Here is a plot showing how the sigmoid function we are using approximates this indicator function, where the <span class="math inline">\(\tau\)</span> parameter introduces more smoothness into the approximation, and hence more error as well. The degree of smoothness that is useful for the estimation process becomes a hyperparameter that needs to be tuned as part of the model fitting process.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a data frame for the sigmoid function</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>x_sigmoid <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>, <span class="at">length.out =</span> <span class="dv">400</span>), <span class="at">times =</span> <span class="dv">5</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>tau_sigmoid <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="fl">0.01</span>, <span class="fl">0.05</span>, <span class="fl">0.10</span>, <span class="fl">0.25</span>, <span class="dv">1</span>), <span class="at">each =</span> <span class="dv">400</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>df_sigmoid <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> x_sigmoid,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">tau =</span> tau_sigmoid,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> <span class="fu">sigmoid</span>(x_sigmoid<span class="sc">/</span>tau_sigmoid)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>df_sigmoid<span class="sc">$</span>tau <span class="ot">=</span> <span class="fu">as.factor</span>(df_sigmoid<span class="sc">$</span>tau)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a data frame for the indicator function</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>x_indicator <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">5</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>y_indicator <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>df_indicator <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> x_indicator,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> y_indicator</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the plot</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add the sigmoid curve</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> df_sigmoid, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">color =</span> tau)) <span class="sc">+</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add the indicator function</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> df_indicator, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y), <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">lwd =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Set the labels and title</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Sigmoid Function vs. Indicator Function"</span>,</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"x"</span>,</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"f(x/tau)"</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="pr_auc_optimization_files/figure-html/sigmoid-approximation-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="gradient-ascent" class="level3">
+<h3 class="anchored" data-anchor-id="gradient-ascent">Gradient Ascent</h3>
+<p>We prepared the function to calculate the gradient above, so next we need to use it to build the optimization function. We are maximizing the objective function, so we are adding the gradient contribution to our parameters at each step of the calculation.</p>
+<p>We will implement this two ways. One is a batch gradient ascent optimization which computes the gradient over the full training data at each step. This is the cleanest way to do it, but problems can arise if the training data becomes very large because this requires us to compute pairwise metrics so the computation grows exponentially as <span class="math inline">\(n^2\)</span>. An alternative approach for use with larger datasets is a minibatch method, which is basically doing the same thing, but sampling from the training data at each gradient update step so that the update is still representative of the training data but is not so large anymore.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fit_smoothap_batch <span class="ot">&lt;-</span> <span class="cf">function</span>(X, y, <span class="at">tau =</span> <span class="fl">0.05</span>, <span class="at">lambda =</span> <span class="fl">0.01</span>, <span class="at">reg_intercept =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                               <span class="at">lr =</span> <span class="fl">0.5</span>, <span class="at">decay =</span> <span class="fl">0.95</span>, <span class="at">epochs =</span> <span class="dv">2000</span>, <span class="at">tol =</span> <span class="fl">1e-7</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  beta <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">ncol</span>(X))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (ep <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>epochs) {</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    out <span class="ot">&lt;-</span> <span class="fu">smoothap_loss_grad</span>(X, y, beta, tau, lambda, reg_intercept)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    beta_new <span class="ot">&lt;-</span> beta <span class="sc">+</span> lr <span class="sc">*</span> out<span class="sc">$</span>grad</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    step_norm <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">sum</span>((beta_new <span class="sc">-</span> beta)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> beta_new</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (verbose <span class="sc">&amp;&amp;</span> (ep <span class="sc">%%</span> <span class="dv">100</span> <span class="sc">==</span> <span class="dv">0</span> <span class="sc">||</span> ep <span class="sc">==</span> <span class="dv">1</span>)) {</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Batch ep=%4d | SmoothAP=%.4f | step=%.3e | lr=%.3g</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>                  ep, out<span class="sc">$</span>smoothAP, step_norm, lr))</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (step_norm <span class="sc">&lt;</span> tol) {</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (verbose) <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Batch converged at ep=%d</span><span class="sc">\n</span><span class="st">"</span>, ep))</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>      <span class="cf">break</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    lr <span class="ot">&lt;-</span> lr <span class="sc">*</span> decay</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  beta</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>fit_smoothap_minibatch <span class="ot">&lt;-</span> <span class="cf">function</span>(X, y, <span class="at">tau =</span> <span class="fl">0.05</span>, <span class="at">lambda =</span> <span class="fl">0.01</span>, <span class="at">reg_intercept =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">lr =</span> <span class="fl">0.1</span>, <span class="at">decay =</span> <span class="fl">0.99</span>, <span class="at">epochs =</span> <span class="dv">4000</span>, <span class="at">batch_size =</span> <span class="dv">16</span>,</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">tol =</span> <span class="fl">1e-7</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>) {</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  beta <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">ncol</span>(X))</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">nrow</span>(X)</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>epochs) {</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">#idx &lt;- sort(sample.int(n, min(batch_size, n)))</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>    idx <span class="ot">&lt;-</span> <span class="fu">createDataPartition</span>(y, <span class="at">p =</span> <span class="fu">min</span>(batch_size, n)<span class="sc">/</span>n)[[<span class="dv">1</span>]]</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    Xb <span class="ot">&lt;-</span> X[idx, , drop <span class="ot">=</span> <span class="cn">FALSE</span>]; yb <span class="ot">&lt;-</span> y[idx]</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">any</span>(yb <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">||</span> <span class="sc">!</span><span class="fu">any</span>(yb <span class="sc">==</span> <span class="dv">0</span>)) <span class="cf">next</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    out <span class="ot">&lt;-</span> <span class="fu">smoothap_loss_grad</span>(Xb, yb, beta, tau, lambda, reg_intercept)</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>    beta_new <span class="ot">&lt;-</span> beta <span class="sc">+</span> lr <span class="sc">*</span> out<span class="sc">$</span>grad</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    step_norm <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">sum</span>((beta_new <span class="sc">-</span> beta)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> beta_new</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (verbose <span class="sc">&amp;&amp;</span> (t <span class="sc">%%</span> <span class="dv">250</span> <span class="sc">==</span> <span class="dv">0</span> <span class="sc">||</span> t <span class="sc">==</span> <span class="dv">1</span>)) {</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>      full <span class="ot">&lt;-</span> <span class="fu">smoothap_loss_grad</span>(X, y, beta, tau, lambda, reg_intercept)</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Mini it=%5d | SmoothAP(full)=%.4f | step=%.3e | lr=%.3g</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>                  t, full<span class="sc">$</span>smoothAP, step_norm, lr))</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (step_norm <span class="sc">&lt;</span> tol) {</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (verbose) <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Mini converged at it=%d</span><span class="sc">\n</span><span class="st">"</span>, t))</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>      <span class="cf">break</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>    lr <span class="ot">&lt;-</span> lr <span class="sc">*</span> decay</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>  beta</span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="testing-performance" class="level2">
+<h2 class="anchored" data-anchor-id="testing-performance">Testing Performance</h2>
+<p>Now that we have the estimation functions built, we can try tuning the custom model on some example data and then comparing the performance with a traditional logistic regression.</p>
+<section id="data-processing" class="level3">
+<h3 class="anchored" data-anchor-id="data-processing">Data Processing</h3>
+<p>We split the data into 60/20/20 train/validation/test. We use performance on the validation set to tune the hyperparameters (tau, learning rate, etc.) for our custom models, then fit all the models on the train and validation data and measure performance on the test set.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create train, validation, and test splits</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>spl <span class="ot">&lt;-</span> <span class="fu">createDataPartition</span>(<span class="fu">as.factor</span>(y), <span class="at">p =</span> <span class="fl">0.6</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>idx_train <span class="ot">&lt;-</span> spl[[<span class="dv">1</span>]]</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>Xtr <span class="ot">&lt;-</span> X[idx_train, , drop <span class="ot">=</span> <span class="cn">FALSE</span>]; ytr <span class="ot">&lt;-</span> y[idx_train]</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>y_temp <span class="ot">&lt;-</span> y[<span class="sc">-</span>idx_train]</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>X_temp <span class="ot">&lt;-</span> X[<span class="sc">-</span>idx_train, , drop <span class="ot">=</span> <span class="cn">FALSE</span>]</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>spl <span class="ot">&lt;-</span> <span class="fu">createDataPartition</span>(<span class="fu">as.factor</span>(y_temp), <span class="at">p =</span> <span class="fl">0.5</span>)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>idx_val <span class="ot">&lt;-</span> spl[[<span class="dv">1</span>]]</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>Xva <span class="ot">&lt;-</span> X_temp[idx_val, , drop <span class="ot">=</span> <span class="cn">FALSE</span>]; yva <span class="ot">&lt;-</span> y_temp[idx_val]</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>Xte <span class="ot">&lt;-</span> X_temp[<span class="sc">-</span>idx_val, , drop <span class="ot">=</span> <span class="cn">FALSE</span>]; yte <span class="ot">&lt;-</span> y_temp[<span class="sc">-</span>idx_val]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="hyperparameter-tuning" class="level3">
+<h3 class="anchored" data-anchor-id="hyperparameter-tuning">Hyperparameter Tuning</h3>
+<p>We select a few hyperparameters to test and then use grid search to find the combination that performs best over the validation set.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create hyperparameter grids</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>grid_batch <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">tau    =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="fl">0.05</span>, <span class="fl">0.10</span>),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">lambda =</span> <span class="fu">c</span>(<span class="fl">0.00</span>, <span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">lr     =</span> <span class="fu">c</span>(<span class="fl">0.2</span>, <span class="fl">0.1</span>, <span class="fl">0.05</span>),</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">decay  =</span> <span class="fu">c</span>(<span class="fl">0.99</span>, <span class="fl">0.95</span>, <span class="fl">0.90</span>),</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">KEEP.OUT.ATTRS =</span> <span class="cn">FALSE</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>grid_mini <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">tau    =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="fl">0.05</span>, <span class="fl">0.10</span>),</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">lambda =</span> <span class="fu">c</span>(<span class="fl">0.00</span>, <span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">lr     =</span> <span class="fu">c</span>(<span class="fl">0.2</span>, <span class="fl">0.1</span>, <span class="fl">0.05</span>),</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">decay  =</span> <span class="fu">c</span>(<span class="fl">0.99</span>, <span class="fl">0.95</span>, <span class="fl">0.90</span>),</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">batch  =</span> <span class="fu">c</span>(<span class="dv">16</span>, <span class="dv">32</span>),</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">KEEP.OUT.ATTRS =</span> <span class="cn">FALSE</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>eval_on_val <span class="ot">&lt;-</span> <span class="cf">function</span>(beta, Xva, yva) {</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Scores are linear for ranking; no outer sigmoid</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  sc_va <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(Xva <span class="sc">%*%</span> beta)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pr_auc</span>(sc_va, yva)</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Batch SmoothAP tuning</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>best_b <span class="ot">&lt;-</span> <span class="cn">NULL</span>; best_b_prauc <span class="ot">&lt;-</span> <span class="sc">-</span><span class="cn">Inf</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(grid_batch))) {</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  g <span class="ot">&lt;-</span> grid_batch[k, ]</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  beta_k <span class="ot">&lt;-</span> <span class="fu">fit_smoothap_batch</span>(Xtr, ytr,</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>                               <span class="at">tau =</span> g<span class="sc">$</span>tau, <span class="at">lambda =</span> g<span class="sc">$</span>lambda,</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>                               <span class="at">lr =</span> g<span class="sc">$</span>lr, <span class="at">decay =</span> g<span class="sc">$</span>decay,</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>                               <span class="at">epochs =</span> <span class="dv">1500</span>, <span class="at">tol =</span> <span class="fl">1e-6</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>  score <span class="ot">&lt;-</span> <span class="fu">eval_on_val</span>(beta_k, Xva, yva)</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (score <span class="sc">&gt;</span> best_b_prauc) { best_b_prauc <span class="ot">&lt;-</span> score; best_b <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">params =</span> g, <span class="at">beta =</span> beta_k) }</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Best batch SmoothAP val PR-AUC = %.4f with params: %s</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>            best_b_prauc, <span class="fu">paste</span>(<span class="fu">names</span>(best_b<span class="sc">$</span>params), <span class="fu">unlist</span>(best_b<span class="sc">$</span>params), <span class="at">sep=</span><span class="st">"="</span>, <span class="at">collapse=</span><span class="st">", "</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Best batch SmoothAP val PR-AUC = 0.9848 with params: tau=0.1, lambda=0.1, lr=0.2, decay=0.99</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Mini-batch SmoothAP tuning</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>best_m <span class="ot">&lt;-</span> <span class="cn">NULL</span>; best_m_prauc <span class="ot">&lt;-</span> <span class="sc">-</span><span class="cn">Inf</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(grid_mini))) {</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  g <span class="ot">&lt;-</span> grid_mini[k, ]</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  beta_k <span class="ot">&lt;-</span> <span class="fu">fit_smoothap_minibatch</span>(Xtr, ytr,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">tau =</span> g<span class="sc">$</span>tau, <span class="at">lambda =</span> g<span class="sc">$</span>lambda,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">lr =</span> g<span class="sc">$</span>lr, <span class="at">decay =</span> g<span class="sc">$</span>decay,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">epochs =</span> <span class="dv">2500</span>, <span class="at">batch_size =</span> g<span class="sc">$</span>batch,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">tol =</span> <span class="fl">1e-6</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  score <span class="ot">&lt;-</span> <span class="fu">eval_on_val</span>(beta_k, Xva, yva)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (score <span class="sc">&gt;</span> best_m_prauc) { best_m_prauc <span class="ot">&lt;-</span> score; best_m <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">params =</span> g, <span class="at">beta =</span> beta_k) }</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Best mini SmoothAP val PR-AUC = %.4f with params: %s</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>            best_m_prauc, <span class="fu">paste</span>(<span class="fu">names</span>(best_m<span class="sc">$</span>params), <span class="fu">unlist</span>(best_m<span class="sc">$</span>params), <span class="at">sep=</span><span class="st">"="</span>, <span class="at">collapse=</span><span class="st">", "</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Best mini SmoothAP val PR-AUC = 0.9870 with params: tau=0.1, lambda=0, lr=0.1, decay=0.95, batch=16</code></pre>
+</div>
+</div>
+<p>It looks like a faster learning rate and less learning rate decay is best here. The optimal choice for tau is less than 1 but also greater than 0.01 so some smoothness is useful. Since several of these values are at the edge of the grid we could probably find better hyperparameter combinations if we expanded the grid and continued testing, but since this is just a toy example we will stop here.</p>
+</section>
+<section id="test-set-performance" class="level3">
+<h3 class="anchored" data-anchor-id="test-set-performance">Test Set Performance</h3>
+<p>Now we apply the best hyperparameters we found in the tuning step above and fit the models on the training and validation data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-fit models on Train+Val data</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>Xtrva <span class="ot">&lt;-</span> <span class="fu">rbind</span>(Xtr, Xva)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>ytrva <span class="ot">&lt;-</span> <span class="fu">c</span>(ytr, yva)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>beta_batch <span class="ot">&lt;-</span> <span class="fu">fit_smoothap_batch</span>(Xtrva, ytrva,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">tau   =</span> best_b<span class="sc">$</span>params<span class="sc">$</span>tau,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">lambda=</span> best_b<span class="sc">$</span>params<span class="sc">$</span>lambda,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">lr    =</span> best_b<span class="sc">$</span>params<span class="sc">$</span>lr,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">decay =</span> best_b<span class="sc">$</span>params<span class="sc">$</span>decay,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">epochs=</span> <span class="dv">3000</span>, <span class="at">tol =</span> <span class="fl">1e-7</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>beta_mini  <span class="ot">&lt;-</span> <span class="fu">fit_smoothap_minibatch</span>(Xtrva, ytrva,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">tau   =</span> best_m<span class="sc">$</span>params<span class="sc">$</span>tau,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">lambda=</span> best_m<span class="sc">$</span>params<span class="sc">$</span>lambda,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">lr    =</span> best_m<span class="sc">$</span>params<span class="sc">$</span>lr,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">decay =</span> best_m<span class="sc">$</span>params<span class="sc">$</span>decay,</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">epochs=</span> <span class="dv">4000</span>, <span class="at">batch_size =</span> best_m<span class="sc">$</span>params<span class="sc">$</span>batch,</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">tol =</span> <span class="fl">1e-7</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Baseline logistic (trained on train+val)</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>glm_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(ytrva <span class="sc">~</span> ., <span class="at">data =</span> <span class="fu">data.frame</span>(<span class="at">ytrva =</span> ytrva, Xtrva[ , <span class="sc">-</span><span class="dv">1</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>]),</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>               <span class="at">family =</span> <span class="fu">binomial</span>())</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Get model scores</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>sc_batch <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(Xte <span class="sc">%*%</span> beta_batch)</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>sc_mini  <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(Xte <span class="sc">%*%</span> beta_mini)</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>sc_glm   <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">predict</span>(glm_fit, <span class="at">newdata =</span> <span class="fu">data.frame</span>(Xte[ , <span class="sc">-</span><span class="dv">1</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>]),</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>                               <span class="at">type =</span> <span class="st">"link"</span>))</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Performance Metrics on the test data</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>res_test <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="fu">c</span>(<span class="st">"Logistic (MLE)"</span>, <span class="st">"SmoothAP (batch)"</span>, <span class="st">"SmoothAP (mini)"</span>),</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>  <span class="at">PR_AUC =</span> <span class="fu">c</span>(<span class="fu">pr_auc</span>(sc_glm, yte), <span class="fu">pr_auc</span>(sc_batch, yte), <span class="fu">pr_auc</span>(sc_mini, yte)),</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>  <span class="at">ROC_AUC =</span> <span class="fu">c</span>(<span class="fu">roc_auc</span>(sc_glm, yte), <span class="fu">roc_auc</span>(sc_batch, yte), <span class="fu">roc_auc</span>(sc_mini, yte))</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(res_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">method</th>
+<th style="text-align: right;">PR_AUC</th>
+<th style="text-align: right;">ROC_AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Logistic (MLE)</td>
+<td style="text-align: right;">0.9746975</td>
+<td style="text-align: right;">0.9792070</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">SmoothAP (batch)</td>
+<td style="text-align: right;">0.9927899</td>
+<td style="text-align: right;">0.9963733</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">SmoothAP (mini)</td>
+<td style="text-align: right;">0.9934036</td>
+<td style="text-align: right;">0.9966151</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Stratified bootstrap CIs for PR-AUC or ROC-AUC</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>boot_ci <span class="ot">&lt;-</span> <span class="cf">function</span>(scores, y, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">metric =</span> <span class="fu">c</span>(<span class="st">"pr"</span>, <span class="st">"roc"</span>)) {</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  metric <span class="ot">&lt;-</span> <span class="fu">match.arg</span>(metric)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  pos_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(y <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  neg_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(y <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  npos <span class="ot">&lt;-</span> <span class="fu">length</span>(pos_idx)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  nneg <span class="ot">&lt;-</span> <span class="fu">length</span>(neg_idx)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  vals <span class="ot">&lt;-</span> <span class="fu">numeric</span>(B)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (b <span class="cf">in</span> <span class="fu">seq_len</span>(B)) {</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># sample positives and negatives separately (with replacement)</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    samp_pos <span class="ot">&lt;-</span> <span class="fu">sample</span>(pos_idx, npos, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    samp_neg <span class="ot">&lt;-</span> <span class="fu">sample</span>(neg_idx, nneg, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    idx <span class="ot">&lt;-</span> <span class="fu">c</span>(samp_pos, samp_neg)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    scb <span class="ot">&lt;-</span> scores[idx]</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    yb  <span class="ot">&lt;-</span> y[idx]</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    vals[b] <span class="ot">&lt;-</span> <span class="cf">if</span> (metric <span class="sc">==</span> <span class="st">"pr"</span>) <span class="fu">pr_auc</span>(scb, yb) <span class="cf">else</span> <span class="fu">roc_auc</span>(scb, yb)</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>  stats<span class="sc">::</span><span class="fu">quantile</span>(vals, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>B <span class="ot">&lt;-</span> <span class="dv">1000</span>  <span class="co"># reduce if runtime is a concern</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>ci_tbl <span class="ot">&lt;-</span> <span class="cf">function</span>(name, scores, y) {</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">PR_L =</span> <span class="fu">boot_ci</span>(scores, y, B, <span class="st">"pr"</span>)[<span class="dv">1</span>],</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">PR_U =</span> <span class="fu">boot_ci</span>(scores, y, B, <span class="st">"pr"</span>)[<span class="dv">2</span>],</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">ROC_L=</span> <span class="fu">boot_ci</span>(scores, y, B, <span class="st">"roc"</span>)[<span class="dv">1</span>],</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">ROC_U=</span> <span class="fu">boot_ci</span>(scores, y, B, <span class="st">"roc"</span>)[<span class="dv">2</span>])</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>cis <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">method =</span> <span class="st">"Logistic (MLE)"</span>,  <span class="fu">ci_tbl</span>(<span class="st">"glm"</span>,   sc_glm,   yte)),</span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">method =</span> <span class="st">"SmoothAP (batch)"</span>,<span class="fu">ci_tbl</span>(<span class="st">"batch"</span>, sc_batch, yte)),</span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">method =</span> <span class="st">"SmoothAP (mini)"</span>, <span class="fu">ci_tbl</span>(<span class="st">"mini"</span>,  sc_mini,  yte))</span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>cis <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(cis, <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>cis[, <span class="sc">-</span><span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">lapply</span>(cis[, <span class="sc">-</span><span class="dv">1</span>], as.numeric)</span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Test-set bootstrap 95% CIs</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Test-set bootstrap 95% CIs</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(cis)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">method</th>
+<th style="text-align: right;">PR_L.2.5%</th>
+<th style="text-align: right;">PR_U.97.5%</th>
+<th style="text-align: right;">ROC_L.2.5%</th>
+<th style="text-align: right;">ROC_U.97.5%</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Logistic (MLE)</td>
+<td style="text-align: right;">0.9381130</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.9429340</td>
+<td style="text-align: right;">0.9995164</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">SmoothAP (batch)</td>
+<td style="text-align: right;">0.9787212</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.9896035</td>
+<td style="text-align: right;">1.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">SmoothAP (mini)</td>
+<td style="text-align: right;">0.9806356</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.9895974</td>
+<td style="text-align: right;">1.0000000</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>We can see that this custom algorithm was able to achieve improved performance on PR-AUC as compared to traditional logistic regression, both when looking at the point estimates for performance as well as confidence intervals for that metric over the test set. The two estimation methods (batch and mini-batch) achieve basically identical performance, which we expect since the mini-batch method is just a way to extend the batch method to be feasible for use with larger datasets.</p>
+<p>In addition to better performance on PR-AUC, this custom algorithm also happens to do better on ROC-AUC, which is a related rank-order performance metric.</p>
+</section>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>In this analysis we implement a custom algorithm for estimating a logistic regression using a surrogate for PR-AUC as the objective function in place of the logistic loss function. We see that we are able to achieve improved performance as measured by PR-AUC when we optimize for it directly while estimating the model.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
