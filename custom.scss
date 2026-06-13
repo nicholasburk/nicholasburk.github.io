@@ -1,11 +1,13 @@
 /*-- scss:defaults --*/
+$link-color: #00bc8c;
+
+$link-color-dark: #00bc8c;
 
 /*-- scss:rules --*/
-
-.quarto-listing a h3 {
+.quarto-listing h3 a {
   color: $link-color;
 }
 
-.quarto-listing a h3:hover {
+.quarto-listing h3 a:hover {
   text-decoration: underline;
 }
