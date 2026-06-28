@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="An exercise in understanding the mechanics of the Hull-White one-factor model through implementing it and benchmarking its outputs">
+
+<title>Hull-White One-Factor Model – Nicholas Burk</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-0a6b7249c26820e032cb0bd839ff02b1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-c264b33ae4b9f8745738a6a58c1bcc0a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Nicholas Burk</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../projects.html"> 
+<span class="menu-text">Projects</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introoverview" id="toc-introoverview" class="nav-link active" data-scroll-target="#introoverview">Intro/Overview</a></li>
+  <li><a href="#setting-up" id="toc-setting-up" class="nav-link" data-scroll-target="#setting-up">Setting Up</a>
+  <ul class="collapse">
+  <li><a href="#loading-libraries" id="toc-loading-libraries" class="nav-link" data-scroll-target="#loading-libraries">Loading Libraries</a></li>
+  </ul></li>
+  <li><a href="#the-model" id="toc-the-model" class="nav-link" data-scroll-target="#the-model">The Model</a>
+  <ul class="collapse">
+  <li><a href="#calibrating-thetat" id="toc-calibrating-thetat" class="nav-link" data-scroll-target="#calibrating-thetat">Calibrating <span class="math inline">\(\theta(t)\)</span></a></li>
+  </ul></li>
+  <li><a href="#setting-up-the-trinomial-tree" id="toc-setting-up-the-trinomial-tree" class="nav-link" data-scroll-target="#setting-up-the-trinomial-tree">Setting Up the Trinomial Tree</a>
+  <ul class="collapse">
+  <li><a href="#why-a-trinomial-tree" id="toc-why-a-trinomial-tree" class="nav-link" data-scroll-target="#why-a-trinomial-tree">Why a Trinomial Tree?</a></li>
+  <li><a href="#tree-parameters" id="toc-tree-parameters" class="nav-link" data-scroll-target="#tree-parameters">Tree Parameters</a></li>
+  <li><a href="#branch-probabilities" id="toc-branch-probabilities" class="nav-link" data-scroll-target="#branch-probabilities">Branch Probabilities</a></li>
+  </ul></li>
+  <li><a href="#building-the-tree-step-1-the-x-process" id="toc-building-the-tree-step-1-the-x-process" class="nav-link" data-scroll-target="#building-the-tree-step-1-the-x-process">Building the Tree: Step 1 — The <span class="math inline">\(x\)</span>-Process</a></li>
+  <li><a href="#step-2-fitting-thetat-to-the-yield-curve" id="toc-step-2-fitting-thetat-to-the-yield-curve" class="nav-link" data-scroll-target="#step-2-fitting-thetat-to-the-yield-curve">Step 2 — Fitting <span class="math inline">\(\theta(t)\)</span> to the Yield Curve</a></li>
+  <li><a href="#visualising-the-short-rate-tree" id="toc-visualising-the-short-rate-tree" class="nav-link" data-scroll-target="#visualising-the-short-rate-tree">Visualising the Short-Rate Tree</a></li>
+  <li><a href="#pricing-zero-coupon-bonds" id="toc-pricing-zero-coupon-bonds" class="nav-link" data-scroll-target="#pricing-zero-coupon-bonds">Pricing Zero-Coupon Bonds</a>
+  <ul class="collapse">
+  <li><a href="#volatility-of-forward-rates" id="toc-volatility-of-forward-rates" class="nav-link" data-scroll-target="#volatility-of-forward-rates">Volatility of Forward Rates</a></li>
+  </ul></li>
+  <li><a href="#comparison-with-hull-textbook-answers" id="toc-comparison-with-hull-textbook-answers" class="nav-link" data-scroll-target="#comparison-with-hull-textbook-answers">Comparison with Hull Textbook Answers</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Hull-White One-Factor Model</h1>
+</div>
+
+<div>
+  <div class="description">
+    An exercise in understanding the mechanics of the Hull-White one-factor model through implementing it and benchmarking its outputs
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introoverview" class="level2">
+<h2 class="anchored" data-anchor-id="introoverview">Intro/Overview</h2>
+<p>Interest rate models sit at the heart of fixed income derivatives pricing, and among them the Hull-White one-factor model occupies a particularly important place. Introduced by John Hull and Alan White in 1990, it was designed to solve a fundamental problem that plagued earlier short-rate models such as Vasicek and Cox-Ingersoll-Ross (CIR): <strong>they could not be calibrated to exactly reproduce an observed market yield curve</strong>. The Hull-White model adds a time-varying mean-reversion level that absorbs this mismatch, making it both analytically tractable and practically useful.</p>
+<p>This post walks through a ground-up implementation of the Hull-White one-factor model using a trinomial tree, entirely in base R. Along the way we will build intuition for why the model is structured the way it is, why a trinomial tree is preferred over a binomial tree for this particular model, and what the model’s implied volatility surface looks like. At the end we compare our hand-rolled implementation against an example with answers from John C. Hull’s textbook as a benchmark.</p>
+</section>
+<section id="setting-up" class="level2">
+<h2 class="anchored" data-anchor-id="setting-up">Setting Up</h2>
+<section id="loading-libraries" class="level3">
+<h3 class="anchored" data-anchor-id="loading-libraries">Loading Libraries</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr) <span class="co"># for data manipulation</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr) <span class="co"># for data manipulation</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2) <span class="co"># to draw charts</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="the-model" class="level2">
+<h2 class="anchored" data-anchor-id="the-model">The Model</h2>
+<p>The Hull-White one-factor model describes the short rate <span class="math inline">\(r(t)\)</span> under the risk-neutral measure as the stochastic differential equation:</p>
+<p><span class="math display">\[
+dr(t) = \bigl[\theta(t) - a\, r(t)\bigr]\, dt + \sigma\, dW(t)
+\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(a &gt; 0\)</span> is the <strong>mean-reversion speed</strong>, controlling how quickly the short rate reverts toward its long-run level.</li>
+<li><span class="math inline">\(\sigma &gt; 0\)</span> is the <strong>volatility</strong> of the short rate.</li>
+<li><span class="math inline">\(\theta(t)\)</span> is a <strong>time-dependent drift</strong> that is chosen so the model exactly fits the initial term structure (yield curve).</li>
+<li><span class="math inline">\(W(t)\)</span> is a standard Brownian motion under the risk-neutral measure.</li>
+</ul>
+<p>The key insight is that <span class="math inline">\(\theta(t)\)</span> is not a free parameter — it is determined analytically from the initial discount curve (the market-observed zero rates). This is what makes Hull-White an <strong>arbitrage-free model</strong>: the calibrated tree will price zero-coupon bonds consistently with the observed market prices.</p>
+<section id="calibrating-thetat" class="level3">
+<h3 class="anchored" data-anchor-id="calibrating-thetat">Calibrating <span class="math inline">\(\theta(t)\)</span></h3>
+<p>Given an initial forward rate curve <span class="math inline">\(f^M(0, t)\)</span> (the instantaneous forward rate implied by the market yield curve), Hull and White showed that:</p>
+<p><span class="math display">\[
+\theta(t) = \frac{\partial f^M(0,t)}{\partial t} + a\, f^M(0,t) + \frac{\sigma^2}{2a}\bigl(1 - e^{-2at}\bigr)
+\]</span></p>
+<p>Rather than working with <span class="math inline">\(\theta(t)\)</span> directly, it is more convenient to make a <strong>change of variable</strong>. Define:</p>
+<p><span class="math display">\[
+x(t) = r(t) - f^M(0,t)
+\]</span></p>
+<p>so that <span class="math inline">\(x\)</span> represents the <em>deviation</em> of the short rate from the market forward curve. The dynamics of <span class="math inline">\(x\)</span> under this substitution become:</p>
+<p><span class="math display">\[
+dx(t) = -a\, x(t)\, dt + \sigma\, dW(t)
+\]</span></p>
+<p>The basic idea is that trying to build a trinomial tree directly with a time-dependent drift <span class="math inline">\(\theta(t)\)</span> is a geometric nightmare. Because the drift changes at every time step to match the yield curve, the tree branches would constantly bend, warp, and misalign, making computational tracking incredibly messy.</p>
+<p>By subtracting the market forward curve and working with <span class="math inline">\(x(t)\)</span>, we strip out that volatile time-dependent drift. This leaves us with a pure Ornstein-Uhlenbeck (OU) process where the mean-reversion level is a clean, constant zero. This allows us to construct a perfectly symmetric, highly stable “backbone” tree for <span class="math inline">\(x\)</span> first, and then shift its nodes in parallel later to perfectly recreate the market’s yield curve.</p>
+</section>
+</section>
+<section id="setting-up-the-trinomial-tree" class="level2">
+<h2 class="anchored" data-anchor-id="setting-up-the-trinomial-tree">Setting Up the Trinomial Tree</h2>
+<section id="why-a-trinomial-tree" class="level3">
+<h3 class="anchored" data-anchor-id="why-a-trinomial-tree">Why a Trinomial Tree?</h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Sidebar: Why Trinomial Instead of Binomial?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>For equity models, a binomial tree works because stock prices have no mean reversion. The transition probabilities are the same at every node regardless of the asset level, so there is no risk of probabilities going negative at extreme nodes. The Hull-White model breaks this property: the mean-reversion drift grows with distance from zero, and a two-branch structure cannot absorb that growing asymmetry while keeping all probabilities valid.</p>
+<p>The mean-reversion term <span class="math inline">\(-a\, x(t)\)</span> means that for large values of <span class="math inline">\(|x|\)</span>, the process is pulled strongly back toward zero. If we attempt to use a standard binomial tree with a fixed branching structure, the probabilities at extreme nodes can become <strong>negative</strong>, violating the basic requirement that probabilities lie in <span class="math inline">\([0,1]\)</span>. This happens because the mean-reversion drift is large relative to the diffusion step, so the “down” branch from a high node carries negative probability in order to correctly capture the expected downward pull.</p>
+<p>To better illustrate this, remember that the Hull-White model follows the dynamics:</p>
+<p><span class="math display">\[
+dx(t) = -a\, x(t)\, dt + \sigma\, dW(t)
+\]</span></p>
+<p>If we use a standard binomial tree with fixed spacing <span class="math inline">\(\Delta x\)</span>, the probabilities <span class="math inline">\(p_u\)</span> (up) and <span class="math inline">\(p_d\)</span> (down) must satisfy the expected drift and sum to one:</p>
+<p><span class="math display">\[
+\begin{align}
+&amp;p_u + p_d = 1 \\
+&amp;p_u \Delta x + p_d (-\Delta x) = E[dx_t] = -ax_t \Delta t
+\end{align}
+\]</span></p>
+<p>Solving this system of equations yields:</p>
+<p><span class="math display">\[
+p_u = \frac{1}{2}(1 - \frac{a x_t \Delta t}{\Delta x})
+\]</span></p>
+<p>This means that when <span class="math inline">\(x_t\)</span> gets very large (i.e.&nbsp;at the outer nodes of the tree) the drift term <span class="math inline">\(-a x_t \Delta t\)</span> grows linearly with <span class="math inline">\(x_t\)</span>. If <span class="math inline">\(x_t &gt; \frac{\Delta x}{a \Delta t}\)</span> then the term <span class="math inline">\(\frac{a x_t \Delta t}{\Delta x}\)</span> becomes greater than 1, forcing <span class="math inline">\(p_u\)</span> to become negative.</p>
+<p>The trinomial tree fixes this mainly through <strong>shifting the branching geometry</strong>. It adds a third branch (up, middle, down). At normal (middle) nodes the tree branches up, flat, and down by a step <span class="math inline">\(\Delta x\)</span>. At high nodes where positive probability would be at risk, the tree instead branches flat, down, and down-down (a “downward shift”). At low nodes, the mirror applies: the tree branches up-up, up, and flat. This adaptive branching keeps every probability in <span class="math inline">\((0,1)\)</span> across the entire tree.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a tidy data frame describing all three branching geometries</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>node_types <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">label =</span> <span class="st">"Normal Node"</span>,       <span class="at">shifts =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">0</span>, <span class="sc">-</span><span class="dv">1</span>)),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">label =</span> <span class="st">"High Node</span><span class="sc">\n</span><span class="st">(shift down)"</span>, <span class="at">shifts =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="sc">-</span><span class="dv">1</span>, <span class="sc">-</span><span class="dv">2</span>)),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">label =</span> <span class="st">"Low Node</span><span class="sc">\n</span><span class="st">(shift up)"</span>,    <span class="at">shifts =</span> <span class="fu">c</span>(<span class="dv">2</span>,  <span class="dv">1</span>,  <span class="dv">0</span>))</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>probs  <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">6</span>, <span class="dv">2</span><span class="sc">/</span><span class="dv">3</span>, <span class="dv">1</span><span class="sc">/</span><span class="dv">6</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"#2c7bb6"</span>, <span class="st">"#1a9641"</span>, <span class="st">"#d7191c"</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>branch_labels <span class="ot">&lt;-</span> <span class="fu">factor</span>(<span class="fu">c</span>(<span class="st">"Up"</span>, <span class="st">"Mid"</span>, <span class="st">"Down"</span>), <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Up"</span>, <span class="st">"Mid"</span>, <span class="st">"Down"</span>))</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>segments_df <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(node_types, <span class="cf">function</span>(nt) {</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel  =</span> nt<span class="sc">$</span>label,</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">branch =</span> branch_labels,</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">x      =</span> <span class="dv">0</span>, <span class="at">xend =</span> <span class="dv">1</span>,</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">y      =</span> <span class="dv">0</span>, <span class="at">yend =</span> nt<span class="sc">$</span>shifts <span class="sc">*</span> <span class="fl">0.8</span>,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">prob   =</span> probs,</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">color  =</span> colors,</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>nodes_df <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(node_types, <span class="cf">function</span>(nt) {</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel =</span> nt<span class="sc">$</span>label,</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">x     =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fu">rep</span>(<span class="dv">1</span>, <span class="dv">3</span>)),</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">y     =</span> <span class="fu">c</span>(<span class="dv">0</span>, nt<span class="sc">$</span>shifts <span class="sc">*</span> <span class="fl">0.8</span>),</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> segments_df,</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">xend =</span> xend, <span class="at">y =</span> y, <span class="at">yend =</span> yend, <span class="at">color =</span> branch),</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">linewidth =</span> <span class="fl">1.2</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> nodes_df,</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y),</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">shape =</span> <span class="dv">21</span>, <span class="at">fill =</span> <span class="st">"white"</span>, <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">4</span>, <span class="at">stroke =</span> <span class="fl">1.2</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">setNames</span>(colors, branch_labels), <span class="at">name =</span> <span class="st">"Branch"</span>) <span class="sc">+</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>panel, <span class="at">ncol =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="sc">-</span><span class="fl">0.3</span>, <span class="fl">1.6</span>) <span class="sc">+</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text  =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid =</span> <span class="fu">element_blank</span>()</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="hull_white_one_factor_files/figure-html/trinomial-demo-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Branching geometry for the three node types in the Hull-White trinomial tree.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The three-branch structure also improves convergence speed. For a given number of time steps, trinomial trees tend to be more accurate than binomial trees of the same size, because they effectively sample the distribution with higher resolution.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="tree-parameters" class="level3">
+<h3 class="anchored" data-anchor-id="tree-parameters">Tree Parameters</h3>
+<p>For a tree with <span class="math inline">\(N\)</span> time steps over a total horizon <span class="math inline">\(T\)</span>, we set:</p>
+<p><span class="math display">\[
+\Delta t = \frac{T}{N}, \qquad \Delta x = \sigma \sqrt{3\, \Delta t}
+\]</span></p>
+<p>The choice <span class="math inline">\(\Delta x = \sigma\sqrt{3\,\Delta t}\)</span> is derived by matching the variance of the OU process over one time step. The factor of <span class="math inline">\(\sqrt{3}\)</span> instead of <span class="math inline">\(\sqrt{2}\)</span> (as in a binomial tree) comes from the trinomial distribution.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ── Model parameters ──────────────────────────────────────────────────────────</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>a     <span class="ot">&lt;-</span> <span class="fl">0.10</span>      <span class="co"># mean-reversion speed</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>sigma <span class="ot">&lt;-</span> <span class="fl">0.01</span>      <span class="co"># short rate volatility</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>T_mat <span class="ot">&lt;-</span> <span class="dv">10</span>        <span class="co"># tree horizon in years</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># ── Yield curve ─-------------------------------------------------─────────────</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Zero curve with all rates continuously compounded, actual/365</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>zero_curve_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Maturity"</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"3 days"</span>,<span class="st">"1 month"</span>,<span class="st">"2 months"</span>,<span class="st">"3 months"</span>,<span class="st">"6 months"</span>,<span class="st">"1 year"</span>,<span class="st">"2 years"</span>,<span class="st">"3 years"</span>,<span class="st">"4 years"</span>,<span class="st">"5 years"</span>,<span class="st">"6 years"</span>,<span class="st">"7 years"</span>,<span class="st">"8 years"</span>,<span class="st">"9 years"</span>,<span class="st">"10 years"</span>),</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Days"</span>     <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">31</span>,<span class="dv">62</span>,<span class="dv">94</span>,<span class="dv">185</span>,<span class="dv">367</span>,<span class="dv">731</span>,<span class="dv">1096</span>,<span class="dv">1461</span>,<span class="dv">1826</span>,<span class="dv">2194</span>,<span class="dv">2558</span>,<span class="dv">2922</span>,<span class="dv">3287</span>,<span class="dv">3653</span>),</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Rate"</span>     <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">5.01772</span>,<span class="fl">4.98284</span>,<span class="fl">4.97234</span>,<span class="fl">4.96157</span>,<span class="fl">4.99058</span>,<span class="fl">5.09389</span>,<span class="fl">5.79733</span>,<span class="fl">6.30595</span>,<span class="fl">6.73464</span>,<span class="fl">6.94816</span>,<span class="fl">7.08807</span>,<span class="fl">7.27527</span>,<span class="fl">7.30852</span>,<span class="fl">7.39790</span>,<span class="fl">7.49015</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Perform linear interpolation between observed rates to output rates at the time points needed by our discretisation</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>yield_curve <span class="ot">&lt;-</span> <span class="cf">function</span>(t, <span class="at">curve_data =</span> zero_curve_data) {</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 1. Convert data days to years (Act/365)</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  x_days_to_years <span class="ot">&lt;-</span> curve_data<span class="sc">$</span>Days <span class="sc">/</span> <span class="dv">365</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 2. Convert percentage rates to decimals (e.g., 5.01772 -&gt; 0.0501772)</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  y_rates_decimal <span class="ot">&lt;-</span> curve_data<span class="sc">$</span>Rate <span class="sc">/</span> <span class="dv">100</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 3. Perform linear interpolation</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># rule = 2 ensures that if t is slightly outside the boundary (e.g., t = 0), </span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  <span class="co"># it uses flat extrapolation instead of returning NA.</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>  interpolated_rates <span class="ot">&lt;-</span> <span class="fu">approx</span>(</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> x_days_to_years, </span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> y_rates_decimal, </span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">xout =</span> t, </span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"linear"</span>, </span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">rule =</span> <span class="dv">2</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">$</span>y</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(interpolated_rates)</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="branch-probabilities" class="level3">
+<h3 class="anchored" data-anchor-id="branch-probabilities">Branch Probabilities</h3>
+<p>At each node the tree must match the drift and variance of <span class="math inline">\(x\)</span> over <span class="math inline">\(\Delta t\)</span>, and have probabilities that sum to one. For an OU process <span class="math inline">\(dx = -ax\,dt + \sigma\,dW\)</span>, the first two moments over a small step are:</p>
+<p><span class="math display">\[
+\mathbb{E}[\Delta x] = -ax\,\Delta t, \qquad \text{Var}[\Delta x] = \sigma^2\,\Delta t
+\]</span></p>
+<p>For the <strong>normal branching</strong> (up by <span class="math inline">\(\Delta x\)</span>, flat, down by <span class="math inline">\(\Delta x\)</span>):</p>
+<p>The drift constraint gives us</p>
+<p><span class="math display">\[
+\begin{align}
+\mathbb{E}[\Delta x] &amp;= -ax \Delta t \\
+p_u(\Delta x) + p_m(0) + p_d(-\Delta x) &amp;= -a(j \Delta x) \Delta t \\
+p_u - p_d &amp;= -aj \Delta t = M
+\end{align}
+\]</span></p>
+<p>where <span class="math inline">\(M = -aj\Delta t\)</span> is substituted for the scaled drift for convenience of notation.</p>
+<p>The variance constraint gives us</p>
+<p><span class="math display">\[
+\begin{align}
+Var[\Delta x] &amp;= \sigma^2 \Delta t \\
+\mathbb{E}[(\Delta x)^2] - \mathbb{E}[\Delta x]^2 &amp;= \sigma^2 \Delta t \\
+p_u(\Delta x)^2 + p_m(0)^2 + p_d(-\Delta x)^2 - (M \Delta x)^2 &amp;= \sigma^2 \Delta t \\
+(p_u + p_d)(\Delta x)^2 &amp;= \sigma^2 \Delta t + M^2 (\Delta x)^2 \\
+p_u + p_d &amp;= \frac{\sigma^2 \Delta t}{\Delta x^2} + M^2 \\
+p_u + p_d &amp;= \frac{\sigma^2 \Delta t}{3 \sigma^2 \Delta t} + M^2 \\
+p_u + p_d &amp;= \frac{1}{3} + M^2
+\end{align}
+\]</span></p>
+<p>Solving these two equations plus the constraint <span class="math inline">\(p_u + p_m + p_d = 1\)</span> gives us the following solutions for the probabilities:</p>
+<p><span class="math display">\[
+p_u = \frac{1}{6} + \frac{M^2 + M}{2}, \quad
+p_m = \frac{2}{3} - M^2, \quad
+p_d = \frac{1}{6} + \frac{M^2 - M}{2}
+\]</span></p>
+<p>Note that these probabilities can fail to stay positive for larger values of M, so shifted branching needs to occur when that threshold is reached. This is binding for <span class="math inline">\(p_m\)</span> before <span class="math inline">\(p_u\)</span> and <span class="math inline">\(p_d\)</span>, so <span class="math inline">\(p_m\)</span> is what sets the limit. To ensure <span class="math inline">\(p_m\)</span> remins positive, we need:</p>
+<p><span class="math display">\[
+\frac{2}{3} - M^2 \ge 0 \implies M^2 \le \frac{2}{3} \implies |M| \le \sqrt{\frac{2}{3}}
+\]</span></p>
+<p>Since we have</p>
+<p><span class="math display">\[
+M = \frac{E[\Delta x]}{\Delta x} = \frac{-a x \Delta t}{\Delta x} = \frac{-a (j \Delta x) \Delta t}{\Delta x} = -a j \Delta t
+\]</span></p>
+<p>Then our branching threshold where normal branching first fails is at</p>
+<p><span class="math display">\[
+|-a j \Delta t| \le \sqrt{\frac{2}{3}} \implies |j| \le\frac{\sqrt{(2/3)}}{a \Delta t}
+\]</span></p>
+<p>For the <strong>shifted branching</strong> at high nodes (branches land at 0, <span class="math inline">\(-\Delta x\)</span>, <span class="math inline">\(-2\Delta x\)</span>) and low nodes (analogously upward), the probabilities are adjusted accordingly. They are derived using the same approach as above, just within the expectation instead of <span class="math inline">\(p_u(\Delta x) + p_m(0) + p_d(-\Delta x)\)</span> we instead use <span class="math inline">\(p_u(0) + p_m(-\Delta x) + p_d(-2\Delta x)\)</span>. See the final formulas in the code below.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute branching probabilities and branch displacements for a node at x</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># j = integer index of the node (x = j * dx)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Returns: list(shift, pu, pm, pd)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   shift = integer offset of middle branch relative to current node</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>branch_probs <span class="ot">&lt;-</span> <span class="cf">function</span>(j, a, dt, dx) { <span class="co"># dt and dx passed explicitly; no globals</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  M <span class="ot">&lt;-</span> <span class="sc">-</span>a <span class="sc">*</span> j <span class="sc">*</span> dt        <span class="co"># scaled drift</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Determine branching type based on drift magnitude</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  jmax <span class="ot">&lt;-</span> <span class="fu">floor</span>(<span class="fl">0.816</span> <span class="sc">/</span> (a <span class="sc">*</span> dt))  <span class="co"># sqrt(2/3) = 0.81649</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (j <span class="sc">&gt;=</span> jmax) {</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># High node: branches go to j, j-1, j-2 (downward shift)</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    shift <span class="ot">&lt;-</span> <span class="sc">-</span><span class="dv">1</span>   <span class="co"># middle branch lands one step below current</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    pu  <span class="ot">&lt;-</span>  <span class="dv">7</span><span class="sc">/</span><span class="dv">6</span> <span class="sc">+</span> (M<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="dv">3</span><span class="sc">*</span>M) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    pm  <span class="ot">&lt;-</span>  <span class="sc">-</span><span class="dv">1</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">-</span> M<span class="sc">^</span><span class="dv">2</span> <span class="sc">-</span> <span class="dv">2</span><span class="sc">*</span>M</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    pd  <span class="ot">&lt;-</span>  <span class="dv">1</span><span class="sc">/</span><span class="dv">6</span> <span class="sc">+</span> (M<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> M) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (j <span class="sc">&lt;=</span> <span class="sc">-</span>jmax) {</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Low node: branches go to j+2, j+1, j (upward shift)</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    shift <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    pu  <span class="ot">&lt;-</span>  <span class="dv">1</span><span class="sc">/</span><span class="dv">6</span> <span class="sc">+</span> (M<span class="sc">^</span><span class="dv">2</span> <span class="sc">-</span> M) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    pm  <span class="ot">&lt;-</span>  <span class="sc">-</span><span class="dv">1</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">-</span> M<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="dv">2</span><span class="sc">*</span>M</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    pd  <span class="ot">&lt;-</span>  <span class="dv">7</span><span class="sc">/</span><span class="dv">6</span> <span class="sc">+</span> (M<span class="sc">^</span><span class="dv">2</span> <span class="sc">-</span> <span class="dv">3</span><span class="sc">*</span>M) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Normal node: branches go to j+1, j, j-1</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    shift <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    pu  <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">6</span> <span class="sc">+</span> (M<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> M) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    pm  <span class="ot">&lt;-</span> <span class="dv">2</span><span class="sc">/</span><span class="dv">3</span> <span class="sc">-</span> M<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    pd  <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">6</span> <span class="sc">+</span> (M<span class="sc">^</span><span class="dv">2</span> <span class="sc">-</span> M) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">shift =</span> shift, <span class="at">pu =</span> pu, <span class="at">pm =</span> pm, <span class="at">pd =</span> pd)</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Helper: coalesce NA/NULL to a default value</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="st">`</span><span class="at">%||%</span><span class="st">`</span> <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y) <span class="cf">if</span> (<span class="fu">is.null</span>(x) <span class="sc">||</span> <span class="fu">is.na</span>(x)) y <span class="cf">else</span> x</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>build_hw_tree <span class="ot">&lt;-</span> <span class="cf">function</span>(N_steps, T_mat, a, sigma, yield_fn) {</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>  dt    <span class="ot">&lt;-</span> T_mat <span class="sc">/</span> N_steps</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>  dx    <span class="ot">&lt;-</span> sigma <span class="sc">*</span> <span class="fu">sqrt</span>(<span class="dv">3</span> <span class="sc">*</span> dt)</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>  alpha <span class="ot">&lt;-</span> <span class="fu">numeric</span>(N_steps)</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>  Q_list  <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, N_steps <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>  br      <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, N_steps)</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>  Q_cur   <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"0"</span> <span class="ot">=</span> <span class="fl">1.0</span>)</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>  Q_list[[<span class="dv">1</span>]] <span class="ot">&lt;-</span> Q_cur</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(N_steps)) {</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Solve for alpha[i] using Q at step i-1 (i.e. Q_cur)</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    js     <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">names</span>(Q_cur))</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    sum_Qd <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">as.numeric</span>(Q_cur) <span class="sc">*</span> <span class="fu">exp</span>(<span class="sc">-</span>js <span class="sc">*</span> dx <span class="sc">*</span> dt))</span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    P_tgt  <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fu">yield_fn</span>(i <span class="sc">*</span> dt) <span class="sc">*</span> i <span class="sc">*</span> dt)</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>    alpha[i] <span class="ot">&lt;-</span> <span class="fu">log</span>(sum_Qd <span class="sc">/</span> P_tgt) <span class="sc">/</span> dt</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2. Propagate Q forward, discounting by the FULL short rate r(i-1, j) = j*dx + alpha[i]</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>    Q_nxt <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (nm <span class="cf">in</span> <span class="fu">names</span>(Q_cur)) {</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>      j    <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(nm)</span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>      q    <span class="ot">&lt;-</span> Q_cur[nm]</span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>      bp   <span class="ot">&lt;-</span> <span class="fu">branch_probs</span>(j, a, dt, dx)</span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>      disc <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span>(j <span class="sc">*</span> dx <span class="sc">+</span> alpha[i]) <span class="sc">*</span> dt)</span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>      tgts <span class="ot">&lt;-</span> <span class="fu">c</span>(j <span class="sc">+</span> bp<span class="sc">$</span>shift <span class="sc">+</span> <span class="dv">1</span>L, j <span class="sc">+</span> bp<span class="sc">$</span>shift, j <span class="sc">+</span> bp<span class="sc">$</span>shift <span class="sc">-</span> <span class="dv">1</span>L)</span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>      prbs <span class="ot">&lt;-</span> <span class="fu">c</span>(bp<span class="sc">$</span>pu, bp<span class="sc">$</span>pm, bp<span class="sc">$</span>pd)</span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>) {</span>
+<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>        jj        <span class="ot">&lt;-</span> <span class="fu">as.character</span>(tgts[k])</span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>        Q_nxt[jj] <span class="ot">&lt;-</span> (Q_nxt[jj] <span class="sc">%||%</span> <span class="dv">0</span>) <span class="sc">+</span> disc <span class="sc">*</span> q <span class="sc">*</span> prbs[k]</span>
+<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a>      br[[i]][[nm]] <span class="ot">&lt;-</span> bp</span>
+<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a>    Q_cur           <span class="ot">&lt;-</span> Q_nxt</span>
+<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a>    Q_list[[i <span class="sc">+</span> <span class="dv">1</span>]] <span class="ot">&lt;-</span> Q_cur</span>
+<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb4-74"><a href="#cb4-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">Q_list   =</span> Q_list,</span>
+<span id="cb4-75"><a href="#cb4-75" aria-hidden="true" tabindex="-1"></a>    <span class="at">branches =</span> br,</span>
+<span id="cb4-76"><a href="#cb4-76" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha    =</span> alpha,</span>
+<span id="cb4-77"><a href="#cb4-77" aria-hidden="true" tabindex="-1"></a>    <span class="at">N_steps  =</span> N_steps, <span class="at">dt =</span> dt, <span class="at">dx =</span> dx,</span>
+<span id="cb4-78"><a href="#cb4-78" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Short rate at node (i, j):  r(i,j) = j*dx + alpha[i]</span></span>
+<span id="cb4-79"><a href="#cb4-79" aria-hidden="true" tabindex="-1"></a>    <span class="at">r_node   =</span> <span class="cf">function</span>(i, j) j <span class="sc">*</span> dx <span class="sc">+</span> alpha[i]   <span class="co"># closes over this tree's dx and alpha</span></span>
+<span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="building-the-tree-step-1-the-x-process" class="level2">
+<h2 class="anchored" data-anchor-id="building-the-tree-step-1-the-x-process">Building the Tree: Step 1 — The <span class="math inline">\(x\)</span>-Process</h2>
+<p>We first build the tree for the deviation variable <span class="math inline">\(x^*\)</span>. This variable is initially zero and follows the process</p>
+<p><span class="math display">\[
+dx^* = -ax^* dt + \sigma dz
+\]</span></p>
+<p>To build this tree efficiently, we use <strong>Arrow-Debreu prices</strong> (also known as state prices), denoted as <span class="math inline">\(Q(i, j)\)</span>. Think of <span class="math inline">\(Q(i, j)\)</span> as the present value of a derivative that pays exactly $1 if the short rate lands on node <span class="math inline">\(j\)</span> at time step <span class="math inline">\(i\)</span>, and $0 everywhere else.</p>
+<p>Instead of pricing bonds by working backward from maturity every single time, we use <strong>forward induction</strong>. We start at the root node (<span class="math inline">\(i=0\)</span>) with a value of 1.0 and march forward through time. At each step, we push the accumulated state prices forward to the next set of nodes, discounting them by the local short rate and weighting them by the transition probabilities. By tracking these state prices as we build the tree, we create a reusable map of the economy that lets us calibrate the model’s drift instantly.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Q[step][[j]] = Arrow-Debreu price: present value of $1 paid iff the process</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># is at node j at time step i. We propagate forward using the x-process short</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># rate (j*dx*dt) as the discount rate at each node.</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>hw        <span class="ot">&lt;-</span> <span class="fu">build_hw_tree</span>(<span class="at">N_steps=</span><span class="dv">120</span>, <span class="at">T_mat=</span><span class="dv">10</span>, a, sigma, yield_curve)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>Q_current <span class="ot">&lt;-</span> hw<span class="sc">$</span>Q_list[[<span class="dv">121</span>]]</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Nodes at final time step:"</span>, <span class="fu">length</span>(Q_current), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Nodes at final time step: 195 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Node indices range:"</span>, <span class="fu">min</span>(<span class="fu">as.integer</span>(<span class="fu">names</span>(Q_current))),</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"to"</span>, <span class="fu">max</span>(<span class="fu">as.integer</span>(<span class="fu">names</span>(Q_current))), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Node indices range: -97 to 97 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Sum of Arrow-Debreu prices at final step:"</span>,</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">round</span>(<span class="fu">sum</span>(Q_current), <span class="dv">6</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sum of Arrow-Debreu prices at final step: 0.472868 </code></pre>
+</div>
+</div>
+<p>The sum of Arrow-Debreu prices at any time step equals the price of a zero-coupon bond maturing at that step. This is a useful internal consistency check.</p>
+</section>
+<section id="step-2-fitting-thetat-to-the-yield-curve" class="level2">
+<h2 class="anchored" data-anchor-id="step-2-fitting-thetat-to-the-yield-curve">Step 2 — Fitting <span class="math inline">\(\theta(t)\)</span> to the Yield Curve</h2>
+<p>At each time step <span class="math inline">\(i\)</span>, the sum of Arrow-Debreu prices must equal the discount factor <span class="math inline">\(P^M(0, i\,\Delta t)\)</span> implied by the market yield curve. We use this to <strong>calibrate</strong> the constant displacement <span class="math inline">\(\alpha_i\)</span> added to all node rates at step <span class="math inline">\(i\)</span>:</p>
+<p><span class="math display">\[
+P^M(0, t_i) = \sum_j Q(i, j)\, e^{-\bigl[x_j + \alpha_i\bigr]\Delta t}
+\]</span></p>
+<p>Solving for <span class="math inline">\(\alpha_i\)</span>:</p>
+<p><span class="math display">\[
+\alpha_i = \frac{1}{\Delta t} \ln\!\left(\frac{\sum_j Q(i,j)\, e^{-x_j \Delta t}}{P^M(0, t_i)}\right)
+\]</span></p>
+<p>These displacements convert the <span class="math inline">\(x\)</span>-tree into the actual short-rate tree <span class="math inline">\(r = x + \alpha\)</span>.</p>
+<p>This is what will force the model to respect market reality. The market tells us exactly what a zero-coupon bond maturing at step <span class="math inline">\(i\)</span> should cost (<span class="math inline">\(P^M(0, t_i)\)</span>). Our <span class="math inline">\(x\)</span>-tree gives us the discounted paths up to that point, but without the market drift.</p>
+<p>To bridge the gap, we calculate a single correction factor, <span class="math inline">\(\alpha_i\)</span>, for each time step. We sum up our existing Arrow-Debreu prices for that step, see how far off our <span class="math inline">\(x\)</span>-tree’s implied bond price is from the actual market price, and solve for the exact parallel shift needed. Shifting every node at step <span class="math inline">\(i\)</span> by <span class="math inline">\(\alpha_i\)</span> effectively slices the time-dependent drift <span class="math inline">\(\theta(t)\)</span> into discrete, manageable steps, transforming our deviation tree into the final short-rate tree (<span class="math inline">\(r = x + \alpha\)</span>).</p>
+<p>A good sanity check then is that the <span class="math inline">\(\alpha_i\)</span> should be closely aligned with the forward rates of the yield curve that was used to fit the model.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute instantaneous forward rates from the yield curve by finite difference</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># f(0,t) ≈ -d/dt ln P(0,t) = d/dt [y(t)*t], approximated numerically</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>t_steps <span class="ot">&lt;-</span> (<span class="fu">seq_len</span>(hw<span class="sc">$</span>N_steps) ) <span class="sc">*</span> hw<span class="sc">$</span>dt          <span class="co"># time points for each alpha value</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>t_fwd   <span class="ot">&lt;-</span> t_steps                         </span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>h       <span class="ot">&lt;-</span> <span class="fl">1e-5</span>                            <span class="co"># small bump for finite difference</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>fwd_rates <span class="ot">&lt;-</span> (<span class="fu">yield_curve</span>(t_fwd <span class="sc">+</span> h) <span class="sc">*</span> (t_fwd <span class="sc">+</span> h) <span class="sc">-</span> <span class="fu">yield_curve</span>(t_fwd) <span class="sc">*</span> t_fwd) <span class="sc">/</span> h</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">t     =</span> t_steps,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">alpha =</span> hw<span class="sc">$</span>alpha,</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">fwd   =</span> fwd_rates</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(alpha, fwd), <span class="at">names_to =</span> <span class="st">"Series"</span>, <span class="at">values_to =</span> <span class="st">"Rate"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> t, <span class="at">y =</span> Rate <span class="sc">*</span> <span class="dv">100</span>, <span class="at">color =</span> Series)) <span class="sc">+</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="at">alpha =</span> <span class="st">"#2c7bb6"</span>, <span class="at">fwd =</span> <span class="st">"#d7191c"</span>),</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="at">alpha =</span> <span class="st">"Tree alpha"</span>, <span class="at">fwd =</span> <span class="st">"Market forward rate"</span>)</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Maturity (Years)"</span>,</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Rate (%)"</span>,</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Alpha vs. Market Instantaneous Forward Curve"</span>,</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">""</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hull_white_one_factor_files/figure-html/fit-alpha-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The <span class="math inline">\(\alpha_i\)</span> path appears choppy rather than smooth. This is not a bug, it is a faithful reflection of the piecewise-linear forward rates implied by linear interpolation on the input zero curve. In practice, institutions use smooth interpolation methods (cubic splines, Nelson-Siegel, or monotone convex) that produce well-behaved forward curves and therefore smoother <span class="math inline">\(\alpha_i\)</span> paths. The linear interpolation here is chosen to match Hull’s textbook example, where curve smoothness is not the focus.</p>
+</section>
+<section id="visualising-the-short-rate-tree" class="level2">
+<h2 class="anchored" data-anchor-id="visualising-the-short-rate-tree">Visualising the Short-Rate Tree</h2>
+<p>Let us visualise the short-rate distribution across the tree at a few selected time steps to get a feel for the shape of the distribution.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>steps_to_plot <span class="ot">&lt;-</span> <span class="dv">12</span><span class="sc">*</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)   <span class="co"># 1 year, 2 years, 3 years, etc. (at N_steps=120)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>dist_df <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(steps_to_plot, <span class="cf">function</span>(s) {</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  Q_s   <span class="ot">&lt;-</span> hw<span class="sc">$</span>Q_list[[s <span class="sc">+</span> <span class="dv">1</span>]]</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  js    <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">names</span>(Q_s))</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  rates <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">sapply</span>(js, <span class="cf">function</span>(j) hw<span class="sc">$</span><span class="fu">r_node</span>(s, j)))</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  probs <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(Q_s) <span class="sc">/</span> <span class="fu">sum</span>(<span class="fu">as.numeric</span>(Q_s))</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">horizon   =</span> s<span class="sc">/</span><span class="dv">12</span>, <span class="co"># in years</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">rate_pct  =</span> rates <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">weight    =</span> probs</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(dist_df, <span class="fu">aes</span>(<span class="at">x =</span> rate_pct, <span class="at">y =</span> weight)) <span class="sc">+</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">fill =</span> <span class="st">"#2c7bb6"</span>, <span class="at">width =</span> <span class="fl">0.03</span>) <span class="sc">+</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>horizon, <span class="at">ncol =</span> <span class="dv">3</span>, <span class="at">scales =</span> <span class="st">"free_x"</span>) <span class="sc">+</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Short Rate (%)"</span>,</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Arrow-Debreu Weight"</span>,</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Short-Rate Distribution Across the Trinomial Tree"</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="hull_white_one_factor_files/figure-html/visualise-tree-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Distribution of short rates across trinomial tree nodes at multiple time horizons. Each bar’s height represents the Arrow-Debreu probability of reaching that rate level.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The distribution widens over time (volatility accumulates), while remaining centered near the initial short rate (mean reversion prevents the distribution from drifting).</p>
+</section>
+<section id="pricing-zero-coupon-bonds" class="level2">
+<h2 class="anchored" data-anchor-id="pricing-zero-coupon-bonds">Pricing Zero-Coupon Bonds</h2>
+<p>With the calibrated tree in hand, we can price zero-coupon bonds by <strong>backward induction</strong>: start at maturity with a payoff of 1.0 at every node, then work backwards through the tree discounting by the short rate at each node and averaging over the three branches.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Price a zero-coupon bond maturing at step M_step (&lt; N)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>price_zcb_tree <span class="ot">&lt;-</span> <span class="cf">function</span>(M_step, tree) {</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Terminal payoff: named vector of 1s, keyed by node index at M_step</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  node_names <span class="ot">&lt;-</span> <span class="fu">names</span>(tree<span class="sc">$</span>Q_list[[M_step <span class="sc">+</span> <span class="dv">1</span>]])</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  V <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">rep</span>(<span class="fl">1.0</span>, <span class="fu">length</span>(node_names)), node_names)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> (M_step <span class="sc">-</span> <span class="dv">1</span>)<span class="sc">:</span><span class="dv">0</span>) {</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    Q_i   <span class="ot">&lt;-</span> tree<span class="sc">$</span>Q_list[[i <span class="sc">+</span> <span class="dv">1</span>]]</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    V_new <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(Q_i)), <span class="fu">names</span>(Q_i))</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (nm <span class="cf">in</span> <span class="fu">names</span>(Q_i)) {</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>      j   <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(nm)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>      bp  <span class="ot">&lt;-</span> <span class="fu">branch_probs</span>(j, a, tree<span class="sc">$</span>dt, tree<span class="sc">$</span>dx)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>      j_up  <span class="ot">&lt;-</span> <span class="fu">as.character</span>(j <span class="sc">+</span> bp<span class="sc">$</span>shift <span class="sc">+</span> <span class="dv">1</span>L)</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>      j_mid <span class="ot">&lt;-</span> <span class="fu">as.character</span>(j <span class="sc">+</span> bp<span class="sc">$</span>shift)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>      j_dn  <span class="ot">&lt;-</span> <span class="fu">as.character</span>(j <span class="sc">+</span> bp<span class="sc">$</span>shift <span class="sc">-</span> <span class="dv">1</span>L)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Use 0 for any node that doesn't exist in V (boundary nodes)</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>      Vup  <span class="ot">&lt;-</span> <span class="cf">if</span> (j_up  <span class="sc">%in%</span> <span class="fu">names</span>(V)) V[j_up]  <span class="cf">else</span> <span class="dv">0</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>      Vmid <span class="ot">&lt;-</span> <span class="cf">if</span> (j_mid <span class="sc">%in%</span> <span class="fu">names</span>(V)) V[j_mid] <span class="cf">else</span> <span class="dv">0</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>      Vdn  <span class="ot">&lt;-</span> <span class="cf">if</span> (j_dn  <span class="sc">%in%</span> <span class="fu">names</span>(V)) V[j_dn]  <span class="cf">else</span> <span class="dv">0</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>      r_ij      <span class="ot">&lt;-</span> tree<span class="sc">$</span><span class="fu">r_node</span>(i<span class="sc">+</span><span class="dv">1</span>, j)</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>      V_new[nm] <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span>r_ij <span class="sc">*</span> tree<span class="sc">$</span>dt) <span class="sc">*</span> (bp<span class="sc">$</span>pu <span class="sc">*</span> Vup <span class="sc">+</span> bp<span class="sc">$</span>pm <span class="sc">*</span> Vmid <span class="sc">+</span> bp<span class="sc">$</span>pd <span class="sc">*</span> Vdn)</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>    V <span class="ot">&lt;-</span> V_new</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>  V[<span class="st">"0"</span>]</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute tree prices for a grid of maturities</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>t_yrs <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span> <span class="co"># in years</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Passing in step numbers at which to pull tree prices,</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a><span class="co"># chose N=120 earlier for monthly steps so each year is at 12 step intervals</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>tree_prices <span class="ot">&lt;-</span> <span class="fu">sapply</span>(t_yrs<span class="sc">*</span><span class="dv">12</span>, <span class="cf">function</span>(m) {<span class="fu">price_zcb_tree</span>(m, hw)}) </span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>market_prices <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fu">yield_curve</span>(t_yrs) <span class="sc">*</span> t_yrs) <span class="co"># P = exp(-r*T), P(0,T) from zero curve</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Zero-coupon bond prices: tree vs market</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Zero-coupon bond prices: tree vs market</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>df_zcb <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Maturity_yr  =</span> <span class="fu">round</span>(t_yrs, <span class="dv">2</span>),</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Tree_Price   =</span> <span class="fu">round</span>(tree_prices, <span class="dv">6</span>),</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Market_Price =</span> <span class="fu">round</span>(market_prices, <span class="dv">6</span>),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Error_bp     =</span> <span class="fu">round</span>(<span class="fu">abs</span>(tree_prices <span class="sc">-</span> market_prices) <span class="sc">*</span> <span class="dv">10000</span>, <span class="dv">2</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(df_zcb, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> Maturity_yr Tree_Price Market_Price Error_bp
+           1   0.950348     0.950348        0
+           2   0.890557     0.890557        0
+           3   0.827673     0.827673        0
+           4   0.763885     0.763885        0
+           5   0.706538     0.706538        0
+           6   0.653644     0.653644        0
+           7   0.601000     0.601000        0
+           8   0.557291     0.557291        0
+           9   0.513879     0.513879        0
+          10   0.472868     0.472868        0</code></pre>
+</div>
+</div>
+<p>The errors should be small (a few basis points at most for this step size), confirming that our calibration correctly fits the initial yield curve.</p>
+<section id="volatility-of-forward-rates" class="level3">
+<h3 class="anchored" data-anchor-id="volatility-of-forward-rates">Volatility of Forward Rates</h3>
+<p>A natural question is: why does the Hull-White model produce volatilities of forward rates that are decreasing as a function of maturity?</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Sidebar: Why Does Volatility Decline with Maturity in the Hull-White One-Factor Model?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>In a one-factor Hull-White model, every interest rate on the curve is driven by a single source of randomness: the instantaneous short rate. The mean-reversion parameter (<span class="math inline">\(a\)</span>) acts like a financial rubber band. If a random shock pushes the short rate way up today, the model immediately begins pulling it back toward its long-term average.</p>
+<p>Because of this constant pulling effect, a shock today has a massive impact on near-term interest rates, but its influence decays exponentially as you look further out into the future. The instantaneous volatility of a forward rate maturing at time <span class="math inline">\(T\)</span> is given analytically by:</p>
+<p><span class="math display">\[\sigma_F(t, T) = \sigma e^{-a(T-t)}\]</span></p>
+<p>As maturity <span class="math inline">\(T\)</span> increases, the negative exponent causes the volatility to drop off significantly. Long-term rates are heavily insulated from today’s short-rate noise because the model assumes that over a long horizon, mean reversion will inevitably smooth out any temporary spikes.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize Hull-White forward rate volatility decay</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>maturities <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="at">length.out =</span> <span class="dv">100</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>vol_decay  <span class="ot">&lt;-</span> sigma <span class="sc">*</span> <span class="fu">exp</span>(<span class="sc">-</span>a <span class="sc">*</span> maturities)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(maturities, vol_decay) <span class="sc">%&gt;%</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> maturities, <span class="at">y =</span> vol_decay<span class="sc">*</span><span class="dv">100</span>)) <span class="sc">+</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_cartesian</span>(<span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Maturity (Years)"</span>, </span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">y =</span> <span class="st">"Instantaneous Volatility (%)"</span>,</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">title =</span> <span class="st">"Forward Rate Volatility Term Structure"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hull_white_one_factor_files/figure-html/volatility-decay-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="comparison-with-hull-textbook-answers" class="level2">
+<h2 class="anchored" data-anchor-id="comparison-with-hull-textbook-answers">Comparison with Hull Textbook Answers</h2>
+<p>To further confirm the correctness of this implementation, we can compare the output of this model with an example from John C. Hull’s textbook “Options, Futures, and Other Derivatives” (Ninth Edition). Table 31.3 of the textbook provides Hull’s tree-based valuation of a three-year put option on a nine-year zero-coupon bond with a strike price of 63 for a number of different steps to illustrate how the tree prices converge to the analytic price as the number of steps increase. Hull uses parameters <span class="math inline">\(a = 0.1\)</span>, <span class="math inline">\(\sigma = 0.01\)</span>, and yield curve data that we mimicked above.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>hull_textbook_answers <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Steps    =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">30</span>, <span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">200</span>, <span class="dv">500</span>),</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Tree     =</span> <span class="fu">c</span>(<span class="fl">1.8468</span>, <span class="fl">1.8172</span>, <span class="fl">1.8057</span>, <span class="fl">1.8128</span>, <span class="fl">1.8090</span>, <span class="fl">1.8091</span>),</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Analytic =</span> <span class="fl">1.8093</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co"># ── Price a European put on a ZCB using backward induction ────────────────────</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co"># option expires at step opt_step; underlying ZCB matures at step bond_step</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>price_zcb_put <span class="ot">&lt;-</span> <span class="cf">function</span>(tree, opt_step, bond_step, strike) {</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  dt_   <span class="ot">&lt;-</span> tree<span class="sc">$</span>dt</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  Q_all_ <span class="ot">&lt;-</span> tree<span class="sc">$</span>Q_list</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 1: price the ZCB at option expiry by backward induction from bond_step</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>  V_bond <span class="ot">&lt;-</span> Q_all_[[bond_step <span class="sc">+</span> <span class="dv">1</span>]]</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>  V_bond[] <span class="ot">&lt;-</span> <span class="fl">1.0</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> (bond_step <span class="sc">-</span> <span class="dv">1</span>)<span class="sc">:</span>opt_step) {</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    Q_i   <span class="ot">&lt;-</span> Q_all_[[i <span class="sc">+</span> <span class="dv">1</span>]]</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    V_new <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(Q_i)), <span class="fu">names</span>(Q_i))</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (nm <span class="cf">in</span> <span class="fu">names</span>(Q_i)) {</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>      j   <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(nm)</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>      bp  <span class="ot">&lt;-</span> <span class="fu">branch_probs</span>(j, a, tree<span class="sc">$</span>dt, tree<span class="sc">$</span>dx)</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>      tgts <span class="ot">&lt;-</span> <span class="fu">c</span>(j <span class="sc">+</span> bp<span class="sc">$</span>shift <span class="sc">+</span> <span class="dv">1</span>L, j <span class="sc">+</span> bp<span class="sc">$</span>shift, j <span class="sc">+</span> bp<span class="sc">$</span>shift <span class="sc">-</span> <span class="dv">1</span>L)</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>      prbs <span class="ot">&lt;-</span> <span class="fu">c</span>(bp<span class="sc">$</span>pu, bp<span class="sc">$</span>pm, bp<span class="sc">$</span>pd)</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>      Vs   <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">as.character</span>(tgts),</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>                     <span class="cf">function</span>(k) <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(V_bond[k])) V_bond[k] <span class="cf">else</span> <span class="dv">0</span>)</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>      r_ij       <span class="ot">&lt;-</span> tree<span class="sc">$</span><span class="fu">r_node</span>(i<span class="sc">+</span><span class="dv">1</span>, j)</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>      V_new[nm]  <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span>r_ij <span class="sc">*</span> dt_) <span class="sc">*</span> <span class="fu">sum</span>(prbs <span class="sc">*</span> Vs)</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>    V_bond <span class="ot">&lt;-</span> V_new</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 2: put payoff at option expiry = max(strike - ZCB_price, 0) / face</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>  <span class="co"># ZCB prices at opt_step are in V_bond; face value = 100, strike = 63 =&gt; /100</span></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>  V_opt <span class="ot">&lt;-</span> <span class="fu">setNames</span>(</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pmax</span>(strike <span class="sc">/</span> <span class="dv">100</span> <span class="sc">-</span> <span class="fu">as.numeric</span>(V_bond), <span class="dv">0</span>),</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">names</span>(V_bond)</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 3: discount put payoff back to time 0</span></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> (opt_step <span class="sc">-</span> <span class="dv">1</span>)<span class="sc">:</span><span class="dv">0</span>) {</span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>    Q_i   <span class="ot">&lt;-</span> Q_all_[[i <span class="sc">+</span> <span class="dv">1</span>]]</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>    V_new <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(Q_i)), <span class="fu">names</span>(Q_i))</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (nm <span class="cf">in</span> <span class="fu">names</span>(Q_i)) {</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>      j   <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(nm)</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>      bp  <span class="ot">&lt;-</span> <span class="fu">branch_probs</span>(j, a, tree<span class="sc">$</span>dt, tree<span class="sc">$</span>dx)</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>      tgts <span class="ot">&lt;-</span> <span class="fu">c</span>(j <span class="sc">+</span> bp<span class="sc">$</span>shift <span class="sc">+</span> <span class="dv">1</span>L, j <span class="sc">+</span> bp<span class="sc">$</span>shift, j <span class="sc">+</span> bp<span class="sc">$</span>shift <span class="sc">-</span> <span class="dv">1</span>L)</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>      prbs <span class="ot">&lt;-</span> <span class="fu">c</span>(bp<span class="sc">$</span>pu, bp<span class="sc">$</span>pm, bp<span class="sc">$</span>pd)</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>      Vs   <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">as.character</span>(tgts),</span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>                     <span class="cf">function</span>(k) <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(V_opt[k])) V_opt[k] <span class="cf">else</span> <span class="dv">0</span>)</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a>      r_ij       <span class="ot">&lt;-</span> tree<span class="sc">$</span><span class="fu">r_node</span>(i<span class="sc">+</span><span class="dv">1</span>, j)</span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a>      V_new[nm]  <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span>r_ij <span class="sc">*</span> dt_) <span class="sc">*</span> <span class="fu">sum</span>(prbs <span class="sc">*</span> Vs)</span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a>    V_opt <span class="ot">&lt;-</span> V_new</span>
+<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Price at root, scaled back to face = 100</span></span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.numeric</span>(V_opt[<span class="st">"0"</span>]) <span class="sc">*</span> <span class="dv">100</span></span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a><span class="co"># ── Run across all step counts ────────────────────────────────────────────────</span></span>
+<span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a><span class="co"># Option: 3-yr European put, underlying: 9-yr ZCB, strike = 63, face = 100</span></span>
+<span id="cb18-62"><a href="#cb18-62" aria-hidden="true" tabindex="-1"></a>tree_put_prices <span class="ot">&lt;-</span> <span class="fu">sapply</span>(hull_textbook_answers<span class="sc">$</span>Steps, <span class="cf">function</span>(n) {</span>
+<span id="cb18-63"><a href="#cb18-63" aria-hidden="true" tabindex="-1"></a>  tr        <span class="ot">&lt;-</span> <span class="fu">build_hw_tree</span>(n, T_mat, a, sigma, yield_curve)</span>
+<span id="cb18-64"><a href="#cb18-64" aria-hidden="true" tabindex="-1"></a>  opt_step  <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="dv">3</span> <span class="sc">/</span> (T_mat <span class="sc">/</span> n))   <span class="co"># step corresponding to 3 yrs</span></span>
+<span id="cb18-65"><a href="#cb18-65" aria-hidden="true" tabindex="-1"></a>  bond_step <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="dv">9</span> <span class="sc">/</span> (T_mat <span class="sc">/</span> n))   <span class="co"># step corresponding to 9 yrs</span></span>
+<span id="cb18-66"><a href="#cb18-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">price_zcb_put</span>(tr, opt_step, bond_step, <span class="at">strike =</span> <span class="dv">63</span>)</span>
+<span id="cb18-67"><a href="#cb18-67" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb18-68"><a href="#cb18-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-69"><a href="#cb18-69" aria-hidden="true" tabindex="-1"></a>results_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb18-70"><a href="#cb18-70" aria-hidden="true" tabindex="-1"></a>  <span class="at">Steps    =</span> hull_textbook_answers<span class="sc">$</span>Steps,</span>
+<span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a>  <span class="at">Tree_Our =</span> <span class="fu">round</span>(tree_put_prices, <span class="dv">4</span>),</span>
+<span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a>  <span class="at">Tree_Hull =</span> hull_textbook_answers<span class="sc">$</span>Tree,</span>
+<span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a>  <span class="at">Analytic  =</span> hull_textbook_answers<span class="sc">$</span>Analytic</span>
+<span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-76"><a href="#cb18-76" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Three-year European put on 9-year ZCB (strike = 63, face = 100)</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Three-year European put on 9-year ZCB (strike = 63, face = 100)</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results_df, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> Steps Tree_Our Tree_Hull Analytic
+    10   1.9236    1.8468   1.8093
+    30   1.8689    1.8172   1.8093
+    50   1.8468    1.8057   1.8093
+   100   1.8227    1.8128   1.8093
+   200   1.8093    1.8090   1.8093
+   500   1.8125    1.8091   1.8093</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualise convergence</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>results_df <span class="sc">%&gt;%</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(Tree_Our, Tree_Hull),</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">names_to =</span> <span class="st">"Source"</span>, <span class="at">values_to =</span> <span class="st">"Price"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Steps, <span class="at">y =</span> Price, <span class="at">color =</span> Source, <span class="at">shape =</span> Source)) <span class="sc">+</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="fl">2.5</span>) <span class="sc">+</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="fu">aes</span>(<span class="at">yintercept =</span> Analytic, <span class="at">linetype =</span> <span class="st">"Analytic"</span>),</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> results_df[<span class="dv">1</span>, ], <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_linetype_manual</span>(<span class="at">name =</span> <span class="st">""</span>, <span class="at">values =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="at">Tree_Hull =</span> <span class="st">"#f8766d"</span>, <span class="at">Tree_Our =</span> <span class="st">"#00bfc4"</span>)) <span class="sc">+</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Number of Tree Steps"</span>,</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Put Price"</span>,</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">""</span>, <span class="at">shape =</span> <span class="st">""</span>,</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Convergence of HW Put Price vs Hull Textbook &amp; Analytic"</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hull_white_one_factor_files/figure-html/hull-textbook-comparison-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>While there is some discrepancy between Hull’s output and this implementation for smaller step sizes, it converges with both Hull’s output and the analytic price as the number of steps increase, providing comfort that the core logic of the implementation is correct.</p>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>The Hull-White one-factor model is a workhorse of interest rate derivatives pricing. Its elegance comes from a simple but powerful idea: keep the model Gaussian (and thus analytically tractable), but allow a time-varying mean reversion level to absorb the current market yield curve. The result is an arbitrage-free model that can be calibrated to market prices while remaining computationally efficient.</p>
+<p>The trinomial tree implementation we built from scratch in base R demonstrates all of the key mechanics: the change-of-variable to remove the drift; the adaptive branching that keeps probabilities positive; the Arrow-Debreu calibration that fits the yield curve. The close agreement with the closed-form analytic prices gives us confidence in the correctness of the implementation.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
